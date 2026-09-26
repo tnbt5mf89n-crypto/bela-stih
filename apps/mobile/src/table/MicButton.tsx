@@ -23,7 +23,7 @@ export function TakeClock({ startedAt, style }: { startedAt: number; style?: Sty
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
   }, []);
-  return <Text style={style}>{takeClock(Math.max(0, now - startedAt))}</Text>;
+  return <Text style={style} maxFontSizeMultiplier={1.3}>{takeClock(Math.max(0, now - startedAt))}</Text>;
 }
 
 /** How wide the words over the button may run (they sit above it, taking no room in the row). */
@@ -107,7 +107,7 @@ export function MicButton({
           {recording ? (
             <TakeClock startedAt={startedAt} style={styles.caption} />
           ) : (
-            <Text style={[styles.caption, captionAlign === 'end' && styles.captionTextEnd]} numberOfLines={2}>
+            <Text style={[styles.caption, captionAlign === 'end' && styles.captionTextEnd]} numberOfLines={2} maxFontSizeMultiplier={1.3}>
               {status}
             </Text>
           )}

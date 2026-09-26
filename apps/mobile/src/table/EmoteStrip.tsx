@@ -86,7 +86,7 @@ export function EmoteStrip({
               sound={null}
               accessibilityLabel={lang.s.ui.emoteName(e.id)}
             >
-              {hasEmoteFace(e.id) ? <EmoteFace id={e.id} size={26} /> : <Text style={styles.glyph}>{emoteText(lang, e.id)}</Text>}
+              {hasEmoteFace(e.id) ? <EmoteFace id={e.id} size={26} /> : <Text style={styles.glyph} maxFontSizeMultiplier={1.3}>{emoteText(lang, e.id)}</Text>}
             </PressScale>
           ))}
         </View>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Android clips tall emoji without an explicit line height.
-  glyph: { fontSize: 20, lineHeight: 24 },
+  glyph: { fontSize: 20, lineHeight: 24, fontFamily: font.regular },
   phraseChip: {
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: radius.pill,

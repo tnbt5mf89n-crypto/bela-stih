@@ -6,7 +6,7 @@ import type { Lang } from '@belot/i18n';
 import { Button } from '../ui/Button';
 import { Pause } from '../ui/icons';
 import { clockText, type TableHold } from '../net/hold';
-import { ink, radius, space, stroke, surface, theme, type } from '../theme';
+import { font, ink, radius, space, stroke, surface, theme, type } from '../theme';
 
 /** Re-render once a second while mounted: the panel's clocks tick down. */
 export function useNow(ms = 1000): number {
@@ -92,12 +92,12 @@ export function HoldPanel({
       <View style={[styles.panel, { backgroundColor: ground }]} accessibilityRole="alert">
         <View style={styles.head}>
           {icon === 'wait' ? <ActivityIndicator color={theme.accent} /> : <Pause size={22} colour={theme.accent} />}
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={styles.title} numberOfLines={2} maxFontSizeMultiplier={1.3}>
             {title}
           </Text>
         </View>
-        <Text style={styles.line}>{line}</Text>
-        {left !== null && <Text style={styles.left}>{ui.holdLeft(clockText(left))}</Text>}
+        <Text style={styles.line} maxFontSizeMultiplier={1.3}>{line}</Text>
+        {left !== null && <Text style={styles.left} maxFontSizeMultiplier={1.3}>{ui.holdLeft(clockText(left))}</Text>}
         {action && <Button label={action.label} tone={action.tone} onPress={action.onPress} />}
       </View>
     </Animated.View>
@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   title: { flex: 1, color: ink.hi, ...type.h3 },
-  line: { color: ink.mid, fontSize: 14 },
-  left: { color: theme.accent, fontSize: 14, fontVariant: ['tabular-nums'] },
+  line: { color: ink.mid, fontSize: 14, fontFamily: font.regular },
+  left: { color: theme.accent, fontSize: 14, fontFamily: font.regular, fontVariant: ['tabular-nums'] },
 });

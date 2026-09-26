@@ -86,5 +86,5 @@ const styles = StyleSheet.create({
   text: { color: theme.text, fontSize: 14, fontFamily: font.medium },
   // Cream on gold is 1.9:1; the deck's ink on gold is 6.7:1.
   textBela: { color: garb.ink },
-  textCompact: { fontSize: 11, textAlign: 'center' },
+  textCompact: { fontSize: 11, fontFamily: font.medium, textAlign: 'center' },
 });

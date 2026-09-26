@@ -17,7 +17,7 @@ import type { TeamTone } from './teamColour';
 import { Avatar, hasAvatar } from '../avatars';
 import { garb } from '../deck/palette';
 import { font, radius, signal, stroke, theme } from '../theme';
-import { Robot } from '../ui/icons';
+import { Diamond, Robot } from '../ui/icons';
 import { useCountUp } from '../anim/useCountUp';
 import { GiftArt } from '../giftArt';
 import { giftBadgeBox, PUCK_NAME_ROOM } from './metrics';
@@ -285,25 +285,25 @@ export const SeatPuck = memo(function SeatPuck({
         {/* A shape, not just a colour: the partner is readable in greyscale. */}
         {partner && (
           <View style={styles.partnerMark}>
-            <Text style={styles.partnerMarkText}>◆</Text>
+            <Diamond size={10} colour={theme.textDim} />
           </View>
         )}
 
         {isDealer && (
           <View style={styles.dealer}>
-            <Text style={styles.dealerText}>D</Text>
+            <Text style={styles.dealerText} maxFontSizeMultiplier={1.3}>D</Text>
           </View>
         )}
         {shownCards > 0 && (
           <View style={styles.count}>
-            <Text style={styles.countText}>{shownCards}</Text>
+            <Text style={styles.countText} maxFontSizeMultiplier={1.3}>{shownCards}</Text>
           </View>
         )}
         {tricks > 0 && (
           <View style={styles.pile} pointerEvents="none">
             <View style={[styles.pileCard, styles.pileCardBack]} />
             <View style={styles.pileCard} />
-            <Text style={styles.pileText}>{tricks}</Text>
+            <Text style={styles.pileText} maxFontSizeMultiplier={1.3}>{tricks}</Text>
           </View>
         )}
         {/* The latest gift, worn on the ring's left edge. The puck's own
@@ -322,7 +322,7 @@ export const SeatPuck = memo(function SeatPuck({
 
       {showName && (
         <View style={styles.nameRow}>
-          <Text style={[styles.name, nameInk ? { color: nameInk } : null]} numberOfLines={1}>
+          <Text style={[styles.name, nameInk ? { color: nameInk } : null]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
             {name}
           </Text>
           {isBot && <Robot size={12} />}
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   pingStill: { opacity: 0.85, transform: [{ scale: 1.2 }] },
   centre: { alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 3, maxWidth: 84 },
-  name: { color: theme.textDim, fontSize: 12, flexShrink: 1 },
+  name: { color: theme.textDim, fontSize: 12, fontFamily: font.regular, flexShrink: 1 },
   dealer: {
     position: 'absolute',
     top: -2,
@@ -407,7 +407,6 @@ const styles = StyleSheet.create({
   dealerText: { color: garb.ink, fontSize: 11, fontFamily: font.bold },
   teamRing: { position: 'absolute', borderWidth: 2 },
   partnerMark: { position: 'absolute', bottom: -2, left: -2 },
-  partnerMarkText: { color: theme.textDim, fontSize: 11 },
   count: {
     position: 'absolute',
     bottom: -2,

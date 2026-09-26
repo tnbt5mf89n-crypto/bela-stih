@@ -75,7 +75,7 @@ export function RevealRow({
     <Pressable style={styles.row} onPress={onTap}>
       {declarations.map((d, i) => (
         <View key={i} style={styles.group}>
-          <Text style={styles.label}>{label(d)}</Text>
+          <Text style={styles.label} maxFontSizeMultiplier={1.3}>{label(d)}</Text>
           <View style={styles.cards}>
             {d.cards.map((c) => (
               <RevealCard

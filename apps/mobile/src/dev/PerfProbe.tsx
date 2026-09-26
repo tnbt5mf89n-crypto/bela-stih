@@ -1,3 +1,4 @@
+import { font } from '../theme';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
@@ -130,5 +131,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  text: { color: '#ffe082', fontSize: 11, fontVariant: ['tabular-nums'] },
+  text: { color: '#ffe082', fontSize: 11, fontFamily: font.regular, fontVariant: ['tabular-nums'] },
 });

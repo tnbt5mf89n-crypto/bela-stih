@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   mark: { color: theme.text, fontSize: 30, fontFamily: font.bold, marginBottom: 14 },
   markAccent: { color: theme.accent },
   title: { color: theme.text, fontSize: 18, fontFamily: font.bold, textAlign: 'center' },
-  body: { color: theme.textDim, fontSize: 14, textAlign: 'center', maxWidth: 320 },
+  body: { color: theme.textDim, fontSize: 14, fontFamily: font.regular, textAlign: 'center', maxWidth: 320 },
   btn: {
     marginTop: 14,
     paddingHorizontal: 22,

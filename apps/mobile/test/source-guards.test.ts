@@ -565,8 +565,8 @@ describe('the first frame and the last resort', () => {
     expect(t).toMatch(/handNestle: \{ marginBottom: -SELF_NESTLE \}/);
     expect(t).toMatch(/arrangeSlot: \{ height: 34,/);
     // The call is never cut: only the caller's name may ellipsize.
-    expect(t).toMatch(/<Text style=\{styles\.callChipName\} numberOfLines=\{1\}>/);
-    expect(t).toMatch(/<Text style=\{styles\.callChipCall\}>\{call\}<\/Text>/);
+    expect(t).toMatch(/<Text style=\{styles\.callChipName\} numberOfLines=\{1\}(?: maxFontSizeMultiplier=\{1\.3\})?>/);
+    expect(t).toMatch(/<Text style=\{styles\.callChipCall\}(?: maxFontSizeMultiplier=\{1\.3\})?>\{call\}<\/Text>/);
     // One question at a time.
     expect(t).toMatch(/const promptRows = <>\{short \? promptList\.slice\(0, 1\) : promptList\}<\/>;/);
     // The arrange hint takes the faces' own slot, right after them.
@@ -779,7 +779,7 @@ describe('table gifts', () => {
     const t = src('TableScreen.tsx');
     // Both lines say it, and say it OUT LOUD: role="alert" is a live region on
     // the web only, so Android needs its own word for the same thing.
-    const said = /<Text style=\{\[styles\.status, statusIsError && styles\.statusError\]\} role=\{statusIsError \? 'alert' : undefined\} accessibilityLiveRegion=\{statusIsError \? 'assertive' : 'none'\}>/g;
+    const said = /<Text style=\{\[styles\.status, statusIsError && styles\.statusError\]\} role=\{statusIsError \? 'alert' : undefined\} accessibilityLiveRegion=\{statusIsError \? 'assertive' : 'none'\}(?: maxFontSizeMultiplier=\{1\.3\})?>/g;
     expect((t.match(said) ?? []).length).toBe(2);
     expect(t).toMatch(/statusError: \{ color: theme\.dangerInk \}/);
   });

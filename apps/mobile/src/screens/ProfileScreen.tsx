@@ -174,12 +174,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     ...type.h3,
   },
-  hint: { color: theme.textDim, fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  hint: { color: theme.textDim, fontSize: 12, lineHeight: 17, fontFamily: font.regular, textAlign: 'center' },
   faces: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm },
   face: { padding: 2, borderRadius: 24, borderWidth: 2, borderColor: 'transparent' },
   faceOn: { borderColor: theme.accent },
   levelRow: { alignSelf: 'stretch', gap: 6, alignItems: 'center' },
-  level: { color: theme.textDim, fontSize: 13 },
+  level: { color: theme.textDim, fontSize: 13, fontFamily: font.regular },
   xpTrack: {
     alignSelf: 'stretch',
     height: 8,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   headlineLabel: { color: ink.mid, ...type.caption },
   empty: { color: ink.mid, ...type.sub, marginBottom: space.sm },
   statRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  statLabel: { color: theme.textDim, fontSize: 14 },
+  statLabel: { color: theme.textDim, fontSize: 14, fontFamily: font.regular },
   statValue: { color: theme.text, fontSize: 14, fontFamily: font.bold },
   friends: { color: ink.mid, ...type.sub, textAlign: 'center' },
 });

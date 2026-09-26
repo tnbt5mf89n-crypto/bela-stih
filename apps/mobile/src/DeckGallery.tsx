@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.feltDeep },
   scroll: { padding: 14, gap: 10, paddingBottom: 40 },
   title: { color: theme.text, fontSize: 24, fontFamily: font.bold, textAlign: 'center' },
-  suitLabel: { color: theme.textDim, fontSize: 14, marginTop: 8, marginBottom: 4 },
+  suitLabel: { color: theme.textDim, fontSize: 14, fontFamily: font.regular, marginTop: 8, marginBottom: 4 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   card: { marginBottom: 4 },
   footer: { alignItems: 'center', marginTop: 12 },

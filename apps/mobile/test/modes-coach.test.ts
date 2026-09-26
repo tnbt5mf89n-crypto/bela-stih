@@ -501,7 +501,7 @@ describe("the coach's place on the table", () => {
     expect(t).toMatch(/const coachPlaying = coach && !settled && view\.phase === 'PLAY';/);
     // One height whatever it says: two lines, always.
     expect(t).toMatch(/coachRow: \{ minHeight: 2 \* 16 \+ 2 \* 8 \+ 2 \+ 2,/);
-    expect(t).toMatch(/<Text style=\{\[promptHint, styles\.coachText\]\} numberOfLines=\{2\}>/);
+    expect(t).toMatch(/<Text style=\{\[promptHint, styles\.coachText\]\} numberOfLines=\{2\}(?: maxFontSizeMultiplier=\{1\.3\})?>/);
     expect(t).toMatch(/coachText: \{ lineHeight: 16 \}/);
   });
 

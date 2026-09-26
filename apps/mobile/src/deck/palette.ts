@@ -36,8 +36,11 @@ export const garb = {
  * and the suit's ink; `dark` its deeper tone.
  */
 export const PIP_COLOUR = {
-  brown: { fill: '#7a4a21', dark: '#4d2c10' }, // žir
-  green: { fill: '#2f7d3a', dark: '#1d5325' }, // list
+  // 1.6.0: every ink reads at 3:1 or better on the cream stock (legibility.test.ts).
+  // The bells' gold was 2.06:1 - the worst of the four, and the one a player with
+  // deuteranopia could barely tell from the leaves. The courts' garb keeps its gold.
+  brown: { fill: '#3b2410', dark: '#2a1a0c' }, // žir
+  green: { fill: '#1f8a5a', dark: '#1d5325' }, // list
   red: { fill: '#c0202e', dark: '#8a121d' }, // srce
-  gold: { fill: '#d9a41c', dark: '#8f6608' }, // bundeva
+  gold: { fill: '#a87a00', dark: '#8f6608' }, // bundeva
 } as const;

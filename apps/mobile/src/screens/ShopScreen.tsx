@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   walletCoins: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   wallet: { color: theme.accent, fontSize: 24, fontFamily: font.bold },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 3, flexWrap: 'wrap', justifyContent: 'center' },
-  walletHint: { color: theme.textDim, fontSize: 11, textAlign: 'center' },
+  walletHint: { color: theme.textDim, fontSize: 11, fontFamily: font.regular, textAlign: 'center' },
   levelChip: { color: theme.text, fontSize: 14, fontFamily: font.bold, marginRight: space.sm },
   whyToast: {
     position: 'absolute',
@@ -279,5 +279,5 @@ const styles = StyleSheet.create({
   price: { color: theme.accent, fontSize: 12, fontFamily: font.bold },
   select: { color: theme.text, fontSize: 12, fontFamily: font.bold },
   selected: { color: theme.accent, fontSize: 12, fontFamily: font.bold },
-  locked: { color: theme.textDim, fontSize: 12 },
+  locked: { color: theme.textDim, fontSize: 12, fontFamily: font.regular },
 });

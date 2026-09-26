@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     ...type.body,
   },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowLabel: { color: theme.text, fontSize: 15 },
+  rowLabel: { color: theme.text, fontSize: 15, fontFamily: font.regular },
   asleep: { opacity: 0.4 },
 
   // The chips share the row equally, but never below the width their own
@@ -438,8 +438,8 @@ const styles = StyleSheet.create({
   },
   resetText: { color: theme.text, fontSize: 14, fontFamily: font.bold },
 
-  hint: { color: theme.textDim, fontSize: 12, lineHeight: 17, marginTop: 10 },
+  hint: { color: theme.textDim, fontSize: 12, lineHeight: 17, fontFamily: font.regular, marginTop: 10 },
   previewRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 12 },
   link: { color: theme.accent, fontSize: 15, fontFamily: font.medium, textAlign: 'center' },
-  version: { color: theme.textDim, fontSize: 12, textAlign: 'center' },
+  version: { color: theme.textDim, fontSize: 12, fontFamily: font.regular, textAlign: 'center' },
 });

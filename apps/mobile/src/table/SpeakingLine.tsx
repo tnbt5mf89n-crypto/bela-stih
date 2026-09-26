@@ -20,7 +20,7 @@ export function SpeakingLine({ words, reduced }: { words: string; reduced: boole
         ))}
         <View style={styles.dot} />
       </View>
-      <Text style={styles.words} numberOfLines={1}>
+      <Text style={styles.words} numberOfLines={1} maxFontSizeMultiplier={1.3}>
         {words}
       </Text>
     </View>

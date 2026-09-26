@@ -1112,7 +1112,7 @@ export function TableScreen(props: TableScreenProps) {
             </Anchor>
             {view.multiplier > 1 && (
               <View style={styles.multBadge}>
-                <Text style={styles.plaqueMult}>×{view.multiplier}</Text>
+                <Text style={styles.plaqueMult} maxFontSizeMultiplier={1.3}>×{view.multiplier}</Text>
               </View>
             )}
           </>
@@ -1125,7 +1125,7 @@ export function TableScreen(props: TableScreenProps) {
                 </View>
               ))}
             </Anchor>
-            <Text style={styles.plaqueUndecided} numberOfLines={1}>
+            <Text style={styles.plaqueUndecided} numberOfLines={1} maxFontSizeMultiplier={1.3}>
               {lang.s.trumpQuestion}
             </Text>
           </>
@@ -1135,7 +1135,7 @@ export function TableScreen(props: TableScreenProps) {
           short phone once dropped the line for room, and then nobody could
           read who had called. */}
       {view.callerSeat !== null && (
-        <Text style={styles.plaqueCaller} numberOfLines={land ? 2 : 1}>
+        <Text style={styles.plaqueCaller} numberOfLines={land ? 2 : 1} maxFontSizeMultiplier={1.3}>
           {view.callerSeat === mySeat ? lang.s.calledByYou : lang.s.calledBy(meta(view.callerSeat).name)}
         </Text>
       )}
@@ -1241,7 +1241,7 @@ export function TableScreen(props: TableScreenProps) {
                 caption size), an eye where it does not: small phones and
                 the landscape felt leave 26-28 between the side cards. */}
             {peekW >= PEEK_TEXT_W ? (
-              <Text style={[styles.peekText, peeking && styles.peekTextOn]}>{lang.s.ui.lastTrick}</Text>
+              <Text style={[styles.peekText, peeking && styles.peekTextOn]} maxFontSizeMultiplier={1.3}>{lang.s.ui.lastTrick}</Text>
             ) : (
               <Eye size={16} colour={peeking ? theme.accent : ink.mid} />
             )}
@@ -1270,8 +1270,8 @@ export function TableScreen(props: TableScreenProps) {
         {revealRow}
         {floatTip !== null && revealRow === null && !land && (
           <View style={[styles.coachFloat, { maxWidth: bidFloatW }]} pointerEvents="none" accessibilityLiveRegion="polite">
-            <Text style={styles.coachFloatTitle}>{lang.s.ui.coachTitle}</Text>
-            <Text style={styles.coachFloatText}>{floatTip}</Text>
+            <Text style={styles.coachFloatTitle} maxFontSizeMultiplier={1.3}>{lang.s.ui.coachTitle}</Text>
+            <Text style={styles.coachFloatText} maxFontSizeMultiplier={1.3}>{floatTip}</Text>
           </View>
         )}
       </View>
@@ -1280,8 +1280,8 @@ export function TableScreen(props: TableScreenProps) {
       {floatTip !== null && revealRow === null && land && (
         <View style={styles.coachFloatLandBox} pointerEvents="none">
           <View style={[styles.coachFloat, styles.coachFloatLand]} accessibilityLiveRegion="polite">
-            <Text style={styles.coachFloatLandText} numberOfLines={2}>
-              <Text style={styles.coachLabel}>{lang.s.ui.coachTitle}: </Text>
+            <Text style={styles.coachFloatLandText} numberOfLines={2} maxFontSizeMultiplier={1.3}>
+              <Text style={styles.coachLabel} maxFontSizeMultiplier={1.3}>{lang.s.ui.coachTitle}: </Text>
               {floatTip}
             </Text>
           </View>
@@ -1345,14 +1345,14 @@ export function TableScreen(props: TableScreenProps) {
         accessible
         accessibilityLabel={`${name}: ${call}`}
       >
-        <Text style={styles.callChipName} numberOfLines={1}>
+        <Text style={styles.callChipName} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {name}
         </Text>
-        <Text style={styles.callChipCall}>{call}</Text>
+        <Text style={styles.callChipCall} maxFontSizeMultiplier={1.3}>{call}</Text>
       </View>
     ) : (
       <View key={key} style={[styles.callChip, land && styles.callChipLand]}>
-        <Text style={[styles.callChipText, land && styles.callChipTextLand]}>
+        <Text style={[styles.callChipText, land && styles.callChipTextLand]} maxFontSizeMultiplier={1.3}>
           {name}: {call}
         </Text>
       </View>
@@ -1374,8 +1374,8 @@ export function TableScreen(props: TableScreenProps) {
   const promptList = [
     declaring && (
       <View key="zvanja" style={promptRow}>
-        <Text style={promptText}>{lang.s.askZvanja}</Text>
-        <Text style={promptHint}>
+        <Text style={promptText} maxFontSizeMultiplier={1.3}>{lang.s.askZvanja}</Text>
+        <Text style={promptHint} maxFontSizeMultiplier={1.3}>
           {autoSkipping
             ? lang.s.noZvanjaHere
             : marked.length === 0
@@ -1393,7 +1393,7 @@ export function TableScreen(props: TableScreenProps) {
     ),
     short && arranging && !arrangeInSlot && (
       <View key="arrange" style={[promptRow, short && styles.promptInline, coachRowUp && styles.coachRowShort]}>
-        <Text style={[promptText, short && styles.promptInlineText]} numberOfLines={2}>
+        <Text style={[promptText, short && styles.promptInlineText]} numberOfLines={2} maxFontSizeMultiplier={1.3}>
           {lang.s.ui.arrangeHint}
         </Text>
         <Button label={lang.s.ui.arrangeDone} tone="strong" compact onPress={() => setArranging(false)} />
@@ -1401,36 +1401,36 @@ export function TableScreen(props: TableScreenProps) {
     ),
     !settled && !declaring && view.mustDeclare && view.myDeclarations.length > 0 && (
       <View key="declarations" style={promptRow}>
-        <Text style={promptText}>
+        <Text style={promptText} maxFontSizeMultiplier={1.3}>
           {lang.s.declarations}:{' '}
           {view.myDeclarations.map((d) => lang.declaration({ ...d, seat: mySeat })).join(', ')}
         </Text>
-        {!m.compact && <Text style={promptHint}>{lang.s.declareHint}</Text>}
+        {!m.compact && <Text style={promptHint} maxFontSizeMultiplier={1.3}>{lang.s.declareHint}</Text>}
       </View>
     ),
     // Asked already by the zvanja question above: the same question twice
     // took a whole row and pushed Prijavi and Nemam under Android's buttons.
     !settled && !declaring && view.canDeclare === true && (
       <View key="claim" style={promptRow}>
-        <Text style={promptHint}>{lang.s.claimZvanjaHint}</Text>
+        <Text style={promptHint} maxFontSizeMultiplier={1.3}>{lang.s.claimZvanjaHint}</Text>
       </View>
     ),
     arranging && !short && (
       <View key="arrange" style={promptRow}>
-        <Text style={promptText}>{lang.s.ui.arrangeHint}</Text>
+        <Text style={promptText} maxFontSizeMultiplier={1.3}>{lang.s.ui.arrangeHint}</Text>
         <Button label={lang.s.ui.arrangeDone} tone="strong" onPress={() => setArranging(false)} />
       </View>
     ),
     !settled && view.canAnnounceBela && !blind && (
       <View key="bela" style={[promptRow, coach && !land && (short ? styles.coachRowShort : styles.coachRow)]}>
-        <Text style={promptText}>{lang.s.belaHint}</Text>
+        <Text style={promptText} maxFontSizeMultiplier={1.3}>{lang.s.belaHint}</Text>
       </View>
     ),
     // Two lines, always: the row keeps one height whatever it says.
     coachShown && (
       <View key="coach" style={[promptRow, short ? styles.coachRowShort : styles.coachRow]}>
-        <Text style={[promptHint, styles.coachText]} numberOfLines={2}>
-          <Text style={styles.coachLabel}>{lang.s.ui.coachTitle}: </Text>
+        <Text style={[promptHint, styles.coachText]} numberOfLines={2} maxFontSizeMultiplier={1.3}>
+          <Text style={styles.coachLabel} maxFontSizeMultiplier={1.3}>{lang.s.ui.coachTitle}: </Text>
           {coachLine}
         </Text>
       </View>
@@ -1646,11 +1646,11 @@ export function TableScreen(props: TableScreenProps) {
         {mic.phase === 'recording' ? (
           <TakeClock startedAt={mic.startedAt} style={styles.voiceBarText} />
         ) : micStatus ? (
-          <Text style={styles.voiceBarText} numberOfLines={2}>
+          <Text style={styles.voiceBarText} numberOfLines={2} maxFontSizeMultiplier={1.3}>
             {micStatus}
           </Text>
         ) : otherSpeaker === null ? (
-          <Text style={styles.voiceBarHint} numberOfLines={2}>
+          <Text style={styles.voiceBarHint} numberOfLines={2} maxFontSizeMultiplier={1.3}>
             {voiceMode === 'tap' ? lang.s.ui.voiceBarHintTap : lang.s.ui.voiceBarHintHold}
           </Text>
         ) : null}
@@ -1813,7 +1813,7 @@ export function TableScreen(props: TableScreenProps) {
               </View>
 
               <View style={styles.centre}>
-                {status ? <Text style={[styles.status, statusIsError && styles.statusError]} role={statusIsError ? 'alert' : undefined} accessibilityLiveRegion={statusIsError ? 'assertive' : 'none'}>{status}</Text> : null}
+                {status ? <Text style={[styles.status, statusIsError && styles.statusError]} role={statusIsError ? 'alert' : undefined} accessibilityLiveRegion={statusIsError ? 'assertive' : 'none'} maxFontSizeMultiplier={1.3}>{status}</Text> : null}
                 {felt}
                 {prompts}
                 {/* My puck beside my fan, on the faces' side: between my cards
@@ -1869,7 +1869,7 @@ export function TableScreen(props: TableScreenProps) {
                 {pauseButton}
                 {leaveButton}
               </View>
-              {status && !shed ? <Text style={[styles.status, statusIsError && styles.statusError]} role={statusIsError ? 'alert' : undefined} accessibilityLiveRegion={statusIsError ? 'assertive' : 'none'}>{status}</Text> : null}
+              {status && !shed ? <Text style={[styles.status, statusIsError && styles.statusError]} role={statusIsError ? 'alert' : undefined} accessibilityLiveRegion={statusIsError ? 'assertive' : 'none'} maxFontSizeMultiplier={1.3}>{status}</Text> : null}
 
               {/* score strip: match score, plus this deal's running count */}
               <TableHeader
@@ -1899,7 +1899,7 @@ export function TableScreen(props: TableScreenProps) {
                   arranging moves nothing under the finger. */}
               {arrangeInSlot && (
                 <View style={styles.arrangeSlot}>
-                  <Text style={styles.arrangeSlotText} numberOfLines={2}>
+                  <Text style={styles.arrangeSlotText} numberOfLines={2} maxFontSizeMultiplier={1.3}>
                     {lang.s.ui.arrangeHint}
                   </Text>
                   <Button label={lang.s.ui.arrangeDone} tone="strong" compact onPress={() => setArranging(false)} />
@@ -2116,8 +2116,8 @@ const TableHeader = memo(function TableHeader({
         <Animated.View
           style={[styles.teamPill, slim && styles.teamPillSlim, { backgroundColor: team.usDim, borderColor: team.usEdge }, swellUs]}
         >
-          <Text style={styles.pillLabel}>{lang.team(us, mySeat)}</Text>
-          <Text style={[styles.pillValue, slim && styles.pillValueSlim, { color: team.usInk }]}>{usScore}</Text>
+          <Text style={styles.pillLabel} maxFontSizeMultiplier={1.3}>{lang.team(us, mySeat)}</Text>
+          <Text style={[styles.pillValue, slim && styles.pillValueSlim, { color: team.usInk }]} maxFontSizeMultiplier={1.3}>{usScore}</Text>
         </Animated.View>
         {seriesShown && (
           // Ours first, like the pills either side of it.
@@ -2127,7 +2127,7 @@ const TableHeader = memo(function TableHeader({
             accessibilityLabel={`${lang.s.ui.seriesScore} ${series![us]} : ${series![them]}`}
           >
             <Crown size={11} />
-            <Text style={styles.seriesChipText}>
+            <Text style={styles.seriesChipText} maxFontSizeMultiplier={1.3}>
               {series![us]}:{series![them]}
             </Text>
           </View>
@@ -2137,18 +2137,18 @@ const TableHeader = memo(function TableHeader({
         >
           {/* Side by side the two pills mirror each other around the centre;
               stacked in a rail there is no centre, so both read label, value. */}
-          {vertical && <Text style={styles.pillLabel}>{lang.team(them, mySeat)}</Text>}
-          <Text style={[styles.pillValue, slim && styles.pillValueSlim, { color: team.themInk }]}>{themScore}</Text>
-          {!vertical && <Text style={styles.pillLabel}>{lang.team(them, mySeat)}</Text>}
+          {vertical && <Text style={styles.pillLabel} maxFontSizeMultiplier={1.3}>{lang.team(them, mySeat)}</Text>}
+          <Text style={[styles.pillValue, slim && styles.pillValueSlim, { color: team.themInk }]} maxFontSizeMultiplier={1.3}>{themScore}</Text>
+          {!vertical && <Text style={styles.pillLabel} maxFontSizeMultiplier={1.3}>{lang.team(them, mySeat)}</Text>}
         </Animated.View>
       </View>
 
       {progress ? (
         // The last trick's +10 flies here.
         <Anchor id={anchorId.running}>
-          <Text style={[live!, vertical && styles.centreText, slim && styles.liveSlim]}>
+          <Text style={[live!, vertical && styles.centreText, slim && styles.liveSlim]} maxFontSizeMultiplier={1.3}>
             {usRun} : {themRun}
-            <Text style={styles.subDim}>
+            <Text style={styles.subDim} maxFontSizeMultiplier={1.3}>
               {vertical ? '\n' : '   '}
               {progress.callerNeeds === 0
                 ? lang.s.contractSafe
@@ -2157,7 +2157,7 @@ const TableHeader = memo(function TableHeader({
           </Text>
         </Anchor>
       ) : (
-        <Text style={styles.subDim}>
+        <Text style={styles.subDim} maxFontSizeMultiplier={1.3}>
           {lang.s.gameToTarget(target)} · {modeName(lang, mode)}
         </Text>
       )}
@@ -2258,7 +2258,7 @@ const ProfileBar = memo(
         style={[styles.profileBar, vertical && styles.profileBarCol, slim && styles.profileBarSlim]}
       >
         <Animated.View style={[styles.levelBadge, badgeStyle]}>
-          <Text style={styles.levelText}>{p.level}</Text>
+          <Text style={styles.levelText} maxFontSizeMultiplier={1.3}>{p.level}</Text>
         </Animated.View>
         <View style={[styles.xpWrap, vertical && styles.xpWrapCol]}>
           <View style={styles.xpTrack}>
@@ -2267,7 +2267,7 @@ const ProfileBar = memo(
         </View>
         <Anchor id={anchorId.wallet}>
           <View style={styles.coinsRow}>
-            <Text style={styles.coins}>{coins}</Text>
+            <Text style={styles.coins} maxFontSizeMultiplier={1.3}>{coins}</Text>
             <Coin size={12} />
           </View>
         </Anchor>
@@ -2969,7 +2969,7 @@ function DealResult({
     const arrives = order * 60 + 220;
     return (
     <Animated.View style={[styles.resultRow, opts.hero && styles.resultHero]} key={label} entering={enter()}>
-      <Text style={[styles.resultLabel, opts.hero && styles.resultLabelHero]}>{label}</Text>
+      <Text style={[styles.resultLabel, opts.hero && styles.resultLabelHero]} maxFontSizeMultiplier={1.3}>{label}</Text>
       <Pair
         us={v[us]}
         them={v[them]}
@@ -3031,7 +3031,7 @@ function DealResult({
           <View style={[styles.sheetBand, matchOver ? (weWon === false ? styles.sheetBandLost : styles.sheetBandMatch) : styles.sheetBandPlain]}>
             {matchOver && weWon !== false && <Crown size={26} />}
             <View style={styles.sheetBandText}>
-              <Text style={styles.sheetTitle} numberOfLines={2}>
+              <Text style={styles.sheetTitle} numberOfLines={2} maxFontSizeMultiplier={1.3}>
                 {/* The winner's name came with an event this client missed
                     too: then the score below is all there is to say. */}
                 {matchOver
@@ -3044,14 +3044,14 @@ function DealResult({
                       : lang.s.matchScore
                   : lang.s.dealResult}
               </Text>
-              <Text style={styles.sheetVerdict} numberOfLines={2}>
+              <Text style={styles.sheetVerdict} numberOfLines={2} maxFontSizeMultiplier={1.3}>
                 {lang.s.ui.resultMissed}
               </Text>
             </View>
           </View>
           <View style={styles.resultHeads}>
-            <Text style={[styles.resultHead, styles.resultHeadUs]}>{lang.team(us, mySeat)}</Text>
-            <Text style={[styles.resultHead, styles.resultHeadThem]}>{lang.team(them, mySeat)}</Text>
+            <Text style={[styles.resultHead, styles.resultHeadUs]} maxFontSizeMultiplier={1.3}>{lang.team(us, mySeat)}</Text>
+            <Text style={[styles.resultHead, styles.resultHeadThem]} maxFontSizeMultiplier={1.3}>{lang.team(them, mySeat)}</Text>
           </View>
           {row(lang.s.matchScore, matchScores, { hero: true })}
           {pinFoot ? null : foot}
@@ -3098,7 +3098,7 @@ function DealResult({
       >
         {matchOver && weWon !== false && <Crown size={26} />}
         <View style={styles.sheetBandText}>
-          <Text style={[styles.sheetTitle, stiglja && !matchOver && styles.sheetTitleStiglja]} numberOfLines={2}>
+          <Text style={[styles.sheetTitle, stiglja && !matchOver && styles.sheetTitleStiglja]} numberOfLines={2} maxFontSizeMultiplier={1.3}>
             {matchOver
               ? weWon === null
                 ? lang.s.winner(winnerLabel)
@@ -3112,21 +3112,20 @@ function DealResult({
           {call && (
             <View style={styles.sheetCall}>
               {call.trump && <SuitPip suit={call.trump} size={14} />}
-              <Text style={styles.sheetCallText} numberOfLines={1}>
+              <Text style={styles.sheetCallText} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                 {call.name === null ? lang.s.calledByYou : lang.s.calledBy(call.name)}
                 {call.multiplier > 1 ? ` · ×${call.multiplier}` : ''}
               </Text>
             </View>
           )}
-          <Text style={styles.sheetVerdict} numberOfLines={3}>
+          <Text style={styles.sheetVerdict} numberOfLines={3} maxFontSizeMultiplier={1.3}>
             {verdict}
           </Text>
         </View>
         {!matchOver && (
           <Animated.Text
             style={[styles.sheetWord, made ? styles.sheetWordMade : styles.sheetWordFailed]}
-            entering={reduced ? undefined : ZoomIn.springify().damping(14).delay(120)}
-          >
+            entering={reduced ? undefined : ZoomIn.springify().damping(14).delay(120)} maxFontSizeMultiplier={1.3}>
             {made ? lang.s.madeShort : lang.s.failedShort}
           </Animated.Text>
         )}
@@ -3135,7 +3134,7 @@ function DealResult({
       {wrongCard && wrongCard.length > 0 && (
         <View style={styles.wrongCardBox} accessible>
           {wrongCard.map((line) => (
-            <Text key={line} style={styles.wrongCardText}>
+            <Text key={line} style={styles.wrongCardText} maxFontSizeMultiplier={1.3}>
               {line}
             </Text>
           ))}
@@ -3144,8 +3143,8 @@ function DealResult({
 
       {/* the columns, ours first */}
       <View style={styles.resultHeads}>
-        <Text style={[styles.resultHead, styles.resultHeadUs]}>{lang.team(us, mySeat)}</Text>
-        <Text style={[styles.resultHead, styles.resultHeadThem]}>{lang.team(them, mySeat)}</Text>
+        <Text style={[styles.resultHead, styles.resultHeadUs]} maxFontSizeMultiplier={1.3}>{lang.team(us, mySeat)}</Text>
+        <Text style={[styles.resultHead, styles.resultHeadThem]} maxFontSizeMultiplier={1.3}>{lang.team(them, mySeat)}</Text>
       </View>
       {row(lang.s.cardsAndLastTrick, result.trickPoints)}
       {result.valatTeam !== null && row(lang.s.valat, result.valatBonus)}
@@ -3154,7 +3153,7 @@ function DealResult({
       {/* Announced above, credited to the OTHER side in "Upisano" below — say
           so, rather than letting the reader hunt for the missing points. */}
       {result.tricksWon.some((t, i) => t === 0 && result.declarationPoints[i]! > 0) && (
-        <Text style={styles.voidNote}>{lang.s.zvanjaNoTrickToOpponents}</Text>
+        <Text style={styles.voidNote} maxFontSizeMultiplier={1.3}>{lang.s.zvanjaNoTrickToOpponents}</Text>
       )}
       {result.bela[0] + result.bela[1] > 0 && row(lang.s.bela, result.bela)}
       {rule}
@@ -3178,7 +3177,7 @@ function DealResult({
           {rule}
           {row(lang.s.ui.dealsWon, summary.won)}
           {summary.best && (
-            <Animated.Text style={styles.summaryNote} entering={enter()}>
+            <Animated.Text style={styles.summaryNote} entering={enter()} maxFontSizeMultiplier={1.3}>
               {lang.s.ui.bestDeal(summary.best.points, summary.best.deal)}
             </Animated.Text>
           )}
@@ -3187,17 +3186,17 @@ function DealResult({
 
       {award && (award.xp > 0 || award.coins > 0 || award.levelUp !== null) && (
         <Animated.View style={styles.sheetAward} entering={enter()}>
-          {award.xp > 0 && <Text style={styles.sheetAwardText}>+{award.xp} XP</Text>}
+          {award.xp > 0 && <Text style={styles.sheetAwardText} maxFontSizeMultiplier={1.3}>+{award.xp} XP</Text>}
           {award.coins > 0 && (
             <View style={styles.sheetAwardCoins}>
-              <Text style={styles.sheetAwardText}>+{award.coins}</Text>
+              <Text style={styles.sheetAwardText} maxFontSizeMultiplier={1.3}>+{award.coins}</Text>
               <Coin size={13} />
             </View>
           )}
           {award.levelUp !== null && (
             <View style={styles.sheetLevel}>
               <Star size={14} />
-              <Text style={styles.sheetLevelText}>
+              <Text style={styles.sheetLevelText} maxFontSizeMultiplier={1.3}>
                 {lang.s.ui.level} {award.levelUp}
               </Text>
             </View>
@@ -3250,14 +3249,14 @@ function ResultFoot({
         // series, and its two answers sit side by side like a deal's.
         <View style={series ? styles.sheetFoot : styles.resultButtons}>
           {series && (
-            <Text style={styles.seriesLine}>
+            <Text style={styles.seriesLine} maxFontSizeMultiplier={1.3}>
               {lang.s.ui.seriesScore}  {series[0]} : {series[1]}
             </Text>
           )}
           {onRematch && (
             <>
               {askedRematch ? (
-                <Text style={styles.subDim}>
+                <Text style={styles.subDim} maxFontSizeMultiplier={1.3}>
                   {waitingFor > 0 ? lang.s.ui.waitingForRematch(waitingFor) : lang.s.ui.rematchAsked}
                 </Text>
               ) : (
@@ -3309,13 +3308,13 @@ function NextDealButton({ lang, next, onNext }: { lang: Lang; next: NextDealInfo
       <View style={styles.nextReady} accessibilityLiveRegion="polite">
         <View style={styles.nextReadyRow}>
           <Check size={14} />
-          <Text style={styles.nextReadyText}>
+          <Text style={styles.nextReadyText} maxFontSizeMultiplier={1.3}>
             {lang.s.ui.nextReady}
             {count}
           </Text>
         </View>
         {next.waitingFor.length > 0 && (
-          <Text style={styles.subDim} numberOfLines={1}>
+          <Text style={styles.subDim} numberOfLines={1} maxFontSizeMultiplier={1.3}>
             {lang.s.ui.nextWaitingFor(next.waitingFor.join(', '))}
           </Text>
         )}
@@ -3361,9 +3360,9 @@ function Pair({
   const b = useCountUp(them, 600, { reduced, from: from?.[1] ?? them, delayMs: delay });
   const pair = (
     <View style={styles.pair}>
-      <Text style={[styles.pairValue, styles.pairUs, hero && styles.pairHero]}>{a}</Text>
-      <Text style={[styles.pairSep, hero && styles.pairHero]}>:</Text>
-      <Text style={[styles.pairValue, styles.pairThem, hero && styles.pairHero]}>{b}</Text>
+      <Text style={[styles.pairValue, styles.pairUs, hero && styles.pairHero]} maxFontSizeMultiplier={1.3}>{a}</Text>
+      <Text style={[styles.pairSep, hero && styles.pairHero]} maxFontSizeMultiplier={1.3}>:</Text>
+      <Text style={[styles.pairValue, styles.pairThem, hero && styles.pairHero]} maxFontSizeMultiplier={1.3}>{b}</Text>
     </View>
   );
   return anchor ? <Anchor id={anchor}>{pair}</Anchor> : pair;
@@ -3416,17 +3415,17 @@ const styles = StyleSheet.create({
   coinsRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   coins: { color: theme.accent, fontFamily: font.bold, fontSize: 14 },
 
-  status: { color: theme.accent, fontSize: 12, textAlign: 'center' },
+  status: { color: theme.accent, fontSize: 12, fontFamily: font.regular, textAlign: 'center' },
   statusError: { color: theme.dangerInk },
 
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   scoreCol: { flexDirection: 'column', gap: 4, alignItems: 'center', alignSelf: 'stretch' },
   centreText: { textAlign: 'center' },
   scoreText: {},
-  scoreLabel: { color: theme.textDim, fontSize: 13 },
+  scoreLabel: { color: theme.textDim, fontSize: 13, fontFamily: font.regular },
   scoreValue: { color: theme.text, fontSize: 20, fontFamily: font.bold },
-  subDim: { color: theme.textDim, fontSize: 12 },
-  seriesLine: { color: theme.textDim, fontSize: 13, textAlign: 'center' },
+  subDim: { color: theme.textDim, fontSize: 12, fontFamily: font.regular },
+  seriesLine: { color: theme.textDim, fontSize: 13, fontFamily: font.regular, textAlign: 'center' },
   pillRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   // The Pauza button: a compact square beside the leave button.
   pauseButton: {
@@ -3542,7 +3541,7 @@ const styles = StyleSheet.create({
   // In the rail it is a row in the flow, the width of the rail.
   plaqueRail: { alignSelf: 'stretch', paddingHorizontal: 6, paddingVertical: 3 },
   plaqueMult: { color: theme.cardFace, fontSize: 12, fontFamily: font.bold },
-  plaqueCaller: { color: ink.mid, fontSize: 11 },
+  plaqueCaller: { color: ink.mid, fontSize: 11, fontFamily: font.regular },
 
   slot: { position: 'absolute', width: 46, height: 67 },
   slotGhost: {
@@ -3667,7 +3666,7 @@ const styles = StyleSheet.create({
   promptText: { color: theme.accent, fontFamily: font.bold, fontSize: 13 },
   // The zvanja prompt measures 58 on a phone; a shorter reserve still moved the hand.
   promptsReserve: { minHeight: 58, justifyContent: 'flex-end', gap: 8 },
-  promptHint: { color: theme.textDim, fontSize: 12 },
+  promptHint: { color: theme.textDim, fontSize: 12, fontFamily: font.regular },
   // The coach's row: two lines of 16, the row's padding and border, and 2
   // for the bold "Savjet:" sharing the first line (it stood a line 1 taller),
   // said or not, so it never changes height between turns.
@@ -3691,9 +3690,9 @@ const styles = StyleSheet.create({
   // Sideways the felt is wide and short: one wide line, low on the table.
   coachFloatLandBox: { position: 'absolute', left: 0, right: 0, bottom: 2, alignItems: 'center' },
   coachFloatLand: { maxWidth: 520, paddingVertical: 5 },
-  coachFloatLandText: { color: theme.text, fontSize: 12, lineHeight: 16 },
+  coachFloatLandText: { color: theme.text, fontSize: 12, lineHeight: 16, fontFamily: font.regular },
   coachFloatTitle: { color: theme.accent, fontFamily: font.bold, fontSize: 13 },
-  coachFloatText: { color: theme.text, fontSize: 13, lineHeight: 18 },
+  coachFloatText: { color: theme.text, fontSize: 13, lineHeight: 18, fontFamily: font.regular },
   // The wrong card, said on the sheet under the band.
   wrongCardBox: {
     marginTop: 8,
@@ -3704,7 +3703,7 @@ const styles = StyleSheet.create({
     backgroundColor: surface.well,
     gap: 3,
   },
-  wrongCardText: { color: theme.text, fontSize: 13, lineHeight: 18 },
+  wrongCardText: { color: theme.text, fontSize: 13, lineHeight: 18, fontFamily: font.regular },
 
   handArea: { justifyContent: 'flex-end' },
   // Landscape: the fan, and my puck beside it on the faces' side.
@@ -3771,7 +3770,7 @@ const styles = StyleSheet.create({
   voiceBarWide: { flexDirection: 'row', alignItems: 'center', paddingRight: space.lg, gap: space.md },
   voiceBarWideVoice: { flex: 1, minWidth: 0 },
   voiceBarText: { color: ink.hi, fontFamily: font.bold, fontSize: 14 },
-  voiceBarHint: { color: theme.textDim, fontSize: 13 },
+  voiceBarHint: { color: theme.textDim, fontSize: 13, fontFamily: font.regular },
   actionsCol: { gap: 6, alignItems: 'stretch', alignSelf: 'stretch' },
   railToggles: { flexDirection: 'row', gap: RAIL_GAP, alignItems: 'center' },
 

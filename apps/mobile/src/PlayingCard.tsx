@@ -51,7 +51,7 @@ export const PlayingCard = memo(
     caption?: string;
   }) {
     return (
-      <View style={[armed && styles.armedOutline, dimmed && styles.dimmed]}>
+      <View style={[armed && styles.armedOutline]}>
         <View style={[highlight && styles.highlight, selected && styles.selected, armed && styles.armed]}>
           <CardFace card={card} width={width ?? WIDTHS[size]} style={deckStyle} locale={locale} />
           {/* Illegal right now: readable, but clearly sunk into the felt. */}
@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   captionText: { color: garb.ink, fontSize: 11, fontFamily: font.bold, letterSpacing: 0.5 },
-  dimmed: { opacity: 0.6 },
   dimmedTint: {
     position: 'absolute',
     top: 0,
@@ -122,6 +121,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: radius.card,
-    backgroundColor: 'rgba(18,58,43,0.35)',
+    // 1.6.0: the card itself stays opaque; a grey-green wash says "not now" without
+    // letting the felt through (a see-through card lost contrast on everything it showed).
+    backgroundColor: 'rgba(26,40,34,0.55)',
   },
 });

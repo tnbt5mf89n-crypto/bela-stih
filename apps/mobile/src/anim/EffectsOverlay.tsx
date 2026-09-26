@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
     borderColor: stroke.edge,
   },
   stampWide: { width: STAMP_WIDE },
-  stampTextWide: { fontSize: 30, letterSpacing: 1 },
+  stampTextWide: { fontSize: 30, letterSpacing: 1, fontFamily: font.bold },
   stampRingOk: { borderColor: theme.okInk },
   badgePoints: {
     width: 34,
@@ -989,7 +989,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.accent,
     borderColor: garb.goldDark,
   },
-  badgePointsText: { fontSize: 12 },
+  badgePointsText: { fontSize: 12, fontFamily: font.bold },
 
   stampRing: {
     width: STAMP_SIZE,
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   stampRingDanger: { borderColor: theme.dangerInk },
   bubbleText: { color: garb.ink, fontSize: 14, fontFamily: font.bold, textAlign: 'center' },
   bubbleTextGold: { color: garb.ink },
-  bubbleTextBig: { fontSize: 28, lineHeight: 34 },
+  bubbleTextBig: { fontSize: 28, lineHeight: 34, fontFamily: font.bold },
   bubbleTail: {
     width: 0,
     height: 0,
