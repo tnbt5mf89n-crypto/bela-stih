@@ -1165,6 +1165,8 @@ export class BelaRoom extends Room {
       bot: !this.table.humanSeats.has(i as Seat),
       ...(this.gifts[i] ? { gift: this.gifts[i]! } : {}),
       ...(this.seesGifts(i as Seat) ? { seesGifts: true as const } : {}),
+      // The one thing about a seat an app can block or report by (identity.ts).
+      ...(o.sessionId !== null && o.installId !== '' ? { installId: o.installId } : {}),
       // Whom a clip reaches: at a public table only a seat that opted in, while strangers' clips are allowed at all.
       ...(o.sessionId !== null && o.voice && (!this.isPublic || (o.voiceIn && config().strangerClips)) ? { hearsVoice: true as const } : {}),
     }));

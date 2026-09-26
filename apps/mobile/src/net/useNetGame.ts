@@ -6,7 +6,7 @@ import type { Action, DealScoreResult, PublicView, Seat, TeamId } from '@belot/e
 import { teamOf } from '@belot/engine';
 import type { TableEvent } from '@belot/table';
 import { Lang } from '@belot/i18n';
-import { canAffordGift, spendOnGift, type Award, type GiftId, type PlayerProfile } from '@belot/progression';
+import { canAffordGift, isoDay, spendOnGift, type Award, type GiftId, type PlayerProfile } from '@belot/progression';
 import { AnchorMap } from '../anim/AnchorRegistry';
 import { Director, timingsFor, type MotionPolicy } from '../anim/director';
 import { botThinkMs } from '../anim/think';
@@ -22,13 +22,14 @@ import { pattern } from '../haptics';
 import { cueFor, type TableCue } from '../table/cues';
 import { playSfx } from '../audio';
 import { emptyTally, landingSound, mergeAward, processEvents } from '../feedback';
-import { loadProfile, saveProfile, type Settings } from '../storage';
+import { installId as myInstallId, loadBlocked, loadProfile, saveBlocked, saveProfile, type Settings } from '../storage';
+import { blockedIds, withBlock } from '../identity';
 import { applyGiftEcho, GIFT_COOLDOWN_MS, GIFT_ECHO_WAIT_MS, isGiftMessage, reachOf, recipientsOf } from '../gifts';
 import { useGifts } from '../table/useGifts';
 import { notePeople, standInsOf } from './standIns';
 import { localHold, type TableHold, type WireHold } from './hold';
 import { normalizeCode } from './code';
-import { PROTO } from './proto';
+import { BLOCKED_CODE, PROTO } from './proto';
 import { APP_VERSION } from '../screens/common';
 
 /**
@@ -127,6 +128,8 @@ export type NetStatus =
   | 'error';
 
 export interface SeatInfo {
+  /** The install ID this seat's app gave at its join (1.6.0): what a block or a report names. Absent for bots and older apps. */
+  installId?: string;
   seat: Seat;
   name: string;
   avatar: string;
@@ -170,6 +173,8 @@ interface RoomMessage {
   private?: true;
   /** Voice messages are on at this table (absent from an older server: there are none). */
   voice?: true;
+  /** A public table with voice on: strangers' clips reach only the seats that said `voiceIn` (1.6.0). */
+  voiceOptIn?: true;
   /** Present while a private table stands still. */
   hold?: WireHold;
   /** At DEAL_OVER: time until the next deal starts by itself. */
@@ -224,6 +229,12 @@ export function useNetGame(settings: Settings) {
   const [muted, setMuted] = useState<readonly Seat[]>([]);
   const mutedRef = useRef<readonly Seat[]>([]);
   const [voiceOn, setVoiceOn] = useState(false);
+  // A public table asks its player before strangers are heard; the answer holds for this table.
+  const [voiceOptIn, setVoiceOptIn] = useState(false);
+  const [optedIn, setOptedIn] = useState(false);
+  // This installation, and whom it keeps away (identity.ts): read once, sent at every join.
+  const installIdRef = useRef<string>(myInstallId());
+  const blockedRef = useRef<string[]>(blockedIds(loadBlocked()));
   // Where clips go: the table's playback (OnlineGame) and my own echo's rings.
   const voiceInRef = useRef<((clip: VoiceIn) => void) | null>(null);
   const voiceEchoRef = useRef<((echo: VoiceEcho) => void) | null>(null);
@@ -480,6 +491,7 @@ export function useNetGame(settings: Settings) {
       hiddenRoomRef.current = room.roomId;
       hiddenRef.current = [];
       setHidden([]);
+      setOptedIn(false);
       mutedRef.current = [];
       setMuted([]);
     }
@@ -567,6 +579,7 @@ export function useNetGame(settings: Settings) {
       setTarget(msg.target ?? 1001);
       setIsPrivate(msg.private === true);
       setVoiceOn(msg.voice === true);
+      setVoiceOptIn(msg.voiceOptIn === true);
       // A stale-tap refusal is stale itself the moment the game moves on.
       if (msg.events.length > 0) setError(null);
       if (msg.turnTotalMs) setTurnTotalMs(msg.turnTotalMs);
@@ -806,22 +819,28 @@ export function useNetGame(settings: Settings) {
   const voiceRef = useRef(settings.voice);
   voiceRef.current = settings.voice;
 
+  /** What every join says about this installation (identity.ts): its ID and its block list. */
+  const identity = useCallback(() => ({ installId: installIdRef.current, blocked: blockedRef.current }), []);
+
   const quickPlay = useCallback(
     () =>
       connect(async (c) => {
         try {
-          return await eitherRoom((room) => c.joinOrCreate(room, { name, avatar, gifts: true, voice: voiceRef.current, receipts: true, proto: PROTO, appVersion: APP_VERSION }));
+          return await eitherRoom((room) => c.joinOrCreate(room, { name, avatar, gifts: true, voice: voiceRef.current, receipts: true, proto: PROTO, appVersion: APP_VERSION, ...identity() }));
         } catch (err) {
           // The open table already has somebody playing from this connection.
           // With no accounts the server cannot tell a second player here from
           // a second tab, and three tabs at one table can read the fourth
           // player's hand by elimination — so it seats us apart rather than
           // turning us away. A fresh public table, and strangers join us there.
-          if ((err as { code?: number } | null)?.code !== SAME_ORIGIN_CODE) throw err;
-          return await eitherRoom((room) => c.create(room, { name, avatar, gifts: true, voice: voiceRef.current, receipts: true, proto: PROTO, appVersion: APP_VERSION }));
+          // Likewise a table where somebody has blocked us, or we them (4302):
+          // the matchmaker would offer the same table again, so a fresh one.
+          const code = (err as { code?: number } | null)?.code;
+          if (code !== SAME_ORIGIN_CODE && code !== BLOCKED_CODE) throw err;
+          return await eitherRoom((room) => c.create(room, { name, avatar, gifts: true, voice: voiceRef.current, receipts: true, proto: PROTO, appVersion: APP_VERSION, ...identity() }));
         }
       }),
-    [connect, name, avatar],
+    [connect, name, avatar, identity],
   );
   const createPrivate = useCallback(
     () =>
@@ -837,17 +856,18 @@ export function useNetGame(settings: Settings) {
           receipts: true,
           proto: PROTO,
           appVersion: APP_VERSION,
+          ...identity(),
           private: true,
           mode: settings.difficulty,
           hard: settings.difficulty === 'hard',
           }),
         ),
       ),
-    [connect, name, avatar, settings.difficulty],
+    [connect, name, avatar, settings.difficulty, identity],
   );
   const joinById = useCallback(
-    (id: string) => connect((c) => c.joinById(normalizeCode(id), { name, avatar, gifts: true, voice: voiceRef.current, receipts: true, proto: PROTO, appVersion: APP_VERSION })),
-    [connect, name, avatar],
+    (id: string) => connect((c) => c.joinById(normalizeCode(id), { name, avatar, gifts: true, voice: voiceRef.current, receipts: true, proto: PROTO, appVersion: APP_VERSION, ...identity() })),
+    [connect, name, avatar, identity],
   );
 
   const submit = useCallback((a: Action) => {
@@ -963,6 +983,33 @@ export function useNetGame(settings: Settings) {
     setHidden(next);
     giftsRef.current.mute(s, on);
   }, []);
+  /** At a public table: hear strangers' clips here (or stop). The server relays nothing to a seat that did not ask. */
+  const voiceIn = useCallback((on: boolean) => {
+    roomRef.current?.send('voiceIn', { on });
+    setOptedIn(on);
+  }, []);
+  /**
+   * Block a player for good, on this device (identity.ts): quick play never
+   * seats us together again, and nothing of theirs reaches us at any table.
+   * Hides them for this table too. An older app's seat has no ID to block, so
+   * it is only hidden; the answer says which.
+   */
+  const block = useCallback(
+    (s: Seat): boolean => {
+      const info = seatsRef.current.find((x) => x.seat === s);
+      const id = info?.installId;
+      if (id) {
+        const list = withBlock(loadBlocked(), id, info?.name ?? '', isoDay(new Date()));
+        saveBlocked(list);
+        blockedRef.current = blockedIds(list);
+      }
+      hide(s, true);
+      return !!id;
+    },
+    [hide],
+  );
+  /** The install ID behind a seat, for a report to name; undefined for a bot or an older app. */
+  const installIdOf = useCallback((s: Seat) => seatsRef.current.find((x) => x.seat === s)?.installId, []);
   /** A player's name as the room has it: a report names the real nickname. */
   const realName = useCallback((s: Seat) => seatsRef.current.find((x) => x.seat === s)?.name ?? '', []);
 
@@ -1059,6 +1106,11 @@ export function useNetGame(settings: Settings) {
     confirmHeard,
     muted,
     mute,
+    voiceOptIn,
+    optedIn,
+    voiceIn,
+    block,
+    installIdOf,
     // The seats a bot stands in for: a person's once, never a bot's from the start.
     standIns: standInsOf(shownSeats, hadPersonRef.current, seat),
     hidden,

@@ -1,6 +1,7 @@
 import { isPlayMode, type PlayMode } from './playMode';
 import { Platform } from 'react-native';
-import { emptyProfile, ensureQuests, isoDay, type PlayerProfile } from '@belot/progression';
+import { emptyProfile, ensureQuests, isoDay, type PlayerProfile } from '@belot/progression'
+import { ensureInstallId, hexOf, readBlocked, readConduct, writeBlocked, writeConduct, type BlockedPlayer } from './identity';;
 import { localeFor } from './locale';
 import type { MatchRecord } from './net/history';
 
@@ -246,4 +247,51 @@ export function resetProfile(): PlayerProfile {
   const fresh = ensureQuests(emptyProfile(), isoDay(new Date()));
   saveProfile(fresh);
   return fresh;
+}
+
+// --- identity (identity.ts): this installation, whom it blocks, the conduct sheet ---
+
+/** Raw access for the few modules with their own small records (remoteConfig.ts). */
+export function kvGet(key: string): string | undefined {
+  try {
+    return store.getString(key);
+  } catch {
+    return undefined;
+  }
+}
+
+export function kvSet(key: string, value: string): void {
+  try {
+    store.set(key, value);
+  } catch {
+    // forgotten on the next launch, nothing worse
+  }
+}
+
+/** 16 random bytes from the platform (expo-crypto: SecureRandom on Android, crypto.getRandomValues on the web). */
+function randomHex16(): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- native on the phone, loaded when first needed
+  const Crypto = require('expo-crypto') as typeof import('expo-crypto');
+  return hexOf(Crypto.getRandomBytes(16));
+}
+
+/** This installation's ID: made on the first call that needs it, then kept. */
+export function installId(): string {
+  return ensureInstallId(store, randomHex16);
+}
+
+export function loadBlocked(): BlockedPlayer[] {
+  return readBlocked(store);
+}
+
+export function saveBlocked(list: readonly BlockedPlayer[]): void {
+  writeBlocked(store, list);
+}
+
+export function conductAccepted(): boolean {
+  return readConduct(store);
+}
+
+export function acceptConduct(): void {
+  writeConduct(store);
 }

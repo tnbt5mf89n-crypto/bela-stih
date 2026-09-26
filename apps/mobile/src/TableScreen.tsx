@@ -242,6 +242,8 @@ export interface TableScreenProps {
   onHide?: (s: Seat, hide: boolean) => void;
   /** Online: report a player (the player's own e-mail). */
   onReport?: (s: Seat) => void;
+  /** Online: block a player for good on this device (identity.ts); hides them here too. */
+  onBlock?: (s: Seat) => void;
   /**
    * Online, where voice is on (the table's switch and the player's own): the
    * mic is offered, driving the online screen's recorder.
@@ -284,7 +286,7 @@ export function TableScreen(props: TableScreenProps) {
     playMode = 'easy', matchTarget = 1001, matchLog, series, askedRematch, waitingFor, onRematch, onForceRematch, rematchLabel,
     nextDeal, hold: tableHold = null, onPause, onResume, onPlayOn, reconnecting = false,
     handSort = 'auto', arrangeTip = false, onArrangeTip, confirmPlay = 'ambiguous', awaitEcho = false, refusedN = 0,
-    gifts, giftLanded, giftFrom, giftReadyAt = 0, onGift, giftReach, hidden, onHide, onReport,
+    gifts, giftLanded, giftFrom, giftReadyAt = 0, onGift, giftReach, hidden, onHide, onReport, onBlock,
     mic, micStatus = null, voiceMode = 'hold', speaking, muted, onMute,
   } = props;
 
@@ -1946,6 +1948,15 @@ export function TableScreen(props: TableScreenProps) {
                         onHide(who, !was);
                       },
                       onReport: () => onReport(giftTarget),
+                      ...(onBlock
+                        ? {
+                            onBlock: () => {
+                              const who = giftTarget;
+                              shutGifts();
+                              onBlock(who);
+                            },
+                          }
+                        : {}),
                       ...(onMute && mic
                         ? {
                             muted: muted?.includes(giftTarget) ?? false,

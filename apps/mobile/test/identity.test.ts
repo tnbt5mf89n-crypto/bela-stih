@@ -61,10 +61,11 @@ describe('identity at the door', () => {
     expect(emote).not.toMatch(/this\.broadcast\(MSG\.emote/);
     const gift = room.slice(room.indexOf("packet.type === 'gift'"), room.indexOf("packet.type === 'gift'") + 2500);
     expect(gift).toMatch(/this\.seesGifts\(t\) && this\.reaches\(seat, t\)/);
-    // The ID and the list live with the seat and nowhere else: never published.
+    // The ID goes out with the seat (it is what a block or a report names); the list never, and neither is logged.
     const seatInfo = room.slice(room.indexOf('private seatInfo()'), room.indexOf('private publish()'));
-    expect(seatInfo).not.toMatch(/installId|blocked/);
-    expect(room).not.toMatch(/console\.log\([^)]*installId/);
+    expect(seatInfo).toMatch(/installId: o\.installId/);
+    expect(seatInfo).not.toMatch(/blocked/);
+    expect(room).not.toMatch(/console\.(log|error)\([^)]*(installId|blocked)/);
   });
 
   it('stranger clips need a receive opt-in at a public table, and an older app counts as not opted in', () => {

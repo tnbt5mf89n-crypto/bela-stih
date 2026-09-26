@@ -55,7 +55,7 @@ export function GiftPicker({
   onSend: (id: GiftId, to: Seat | 'table') => void;
   onClose: () => void;
   /** Online, another player's puck: hide them on this device, or report them. */
-  moderate?: { hidden: boolean; onHide: () => void; onReport: () => void; muted?: boolean; onMute?: () => void };
+  moderate?: { hidden: boolean; onHide: () => void; onReport: () => void; muted?: boolean; onMute?: () => void; onBlock?: () => void };
   /**
    * Showing the player view (hide / report) rather than the gifts. The table
    * owns this, not the picker: it opens straight into the player view when no
@@ -232,6 +232,13 @@ export function GiftPicker({
           <View style={styles.player}>
             <Button label={moderate.hidden ? ui.showPlayer : ui.hidePlayer} tone="strong" onPress={moderate.onHide} style={styles.send} />
             <Text style={styles.note}>{ui.hidePlayerNote}</Text>
+            {/* For good, and everywhere: quick play keeps them away, nothing of theirs arrives. */}
+            {moderate.onBlock && (
+              <>
+                <Button label={ui.blockPlayer} tone="plain" onPress={moderate.onBlock} style={styles.send} />
+                <Text style={styles.note}>{ui.blockPlayerNote}</Text>
+              </>
+            )}
             {/* A player fine to see but not to hear; hiding already silences. */}
             {moderate.onMute && !moderate.hidden && (
               <>

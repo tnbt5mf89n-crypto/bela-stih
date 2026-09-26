@@ -166,6 +166,11 @@ export interface UiStrings {
   troubleOffline: string;
   /** The server refused this app as too old for its wire (net/proto.ts UPDATE_APP_CODE). */
   troubleAppTooOld: string;
+  troubleBlocked: string;
+  troubleBanned: string;
+  troubleMaintenance: string;
+  /** The button beside troubleAppTooOld: to the store. */
+  updateApp: string;
   troubleServer: string;
   /** The lobby's connection dropped, and the seat was not got back. */
   troubleDropped: string;
@@ -198,6 +203,21 @@ export interface UiStrings {
   hidePlayer: string;
   showPlayer: string;
   hidePlayerNote: string;
+  /** The player view: block for good on this device (identity.ts), and the list of the blocked in Settings. */
+  blockPlayer: string;
+  blockPlayerNote: string;
+  blockedPlayers: string;
+  blockedNone: string;
+  unblock: string;
+  /** A public table asks before strangers' clips are heard (once per table). */
+  voiceOptInTitle: string;
+  voiceOptInBody: string;
+  voiceOptInYes: string;
+  voiceOptInNo: string;
+  /** The rules of conduct, once, before the first voice message ever sent. */
+  conductTitle: string;
+  conductBody: string;
+  conductAccept: string;
   reportPlayer: string;
   reportPlayerNote: string;
   /** Push-to-talk (apps/mobile/src/voice): the button, and what a press may end in. */
@@ -241,7 +261,7 @@ export interface UiStrings {
   /** Shown under the report button: the address, in case no mail app opens. */
   reportFallback: (email: string) => string;
   reportSubject: string;
-  reportBody: (p: { name: string; code: string; at: string; version: string }) => string;
+  reportBody: (p: { name: string; code: string; at: string; version: string; id?: string }) => string;
   /** A screen reader's hint on another player's puck, online. */
   playerHint: string;
   /** The sheet for a deal whose score this client never saw (after a reconnect). */
@@ -968,6 +988,10 @@ const hr: Strings = {
     troubleTableClosed: 'Za tim stolom se već igra, ili je pun.',
     troubleOffline: 'Nema veze. Provjeri internet pa pokušaj ponovno.',
     troubleAppTooOld: 'Ova verzija aplikacije više ne može igrati online. Ažuriraj je u Trgovini Google Play.',
+    troubleBlocked: 'Za ovim stolom je netko s tvog popisa blokiranih, ili netko tko ima tebe na svojem.',
+    troubleBanned: 'Ova instalacija igre više ne može igrati online.',
+    troubleMaintenance: 'Poslužitelj je nakratko zatvoren zbog održavanja. Pokušaj za nekoliko minuta.',
+    updateApp: 'Ažuriraj',
     troubleServer: 'Poslužitelj se trenutno ne javlja kako treba. Pokušaj ponovno za koji trenutak.',
     troubleDropped: 'Stol više ne čeka. Pokušaj ponovno ili se vrati na početak.',
     troubleSameNetwork:
@@ -991,6 +1015,18 @@ const hr: Strings = {
     hidePlayer: 'Sakrij ovog igrača',
     showPlayer: 'Ponovno prikaži igrača',
     hidePlayerNote: 'Do kraja ovog stola ovaj igrač ti je skriven: ime, emotikoni, darovi i glasovne poruke.',
+    blockPlayer: 'Blokiraj igrača',
+    blockPlayerNote: 'Trajno, na ovom uređaju: u brzoj igri više ne sjedate za isti stol, a poruke, emotikoni i darovi ovog igrača ne dolaze do tebe. Popis je u postavkama.',
+    blockedPlayers: 'Blokirani igrači',
+    blockedNone: 'Nitko nije blokiran.',
+    unblock: 'Odblokiraj',
+    voiceOptInTitle: 'Glasovne poruke za ovim stolom?',
+    voiceOptInBody: 'Ovdje igraš s nepoznatima. Ako ih uključiš, njihove glasovne poruke sviraju same; svakog igrača možeš utišati, sakriti, blokirati ili prijaviti.',
+    voiceOptInYes: 'Uključi',
+    voiceOptInNo: 'Ne ovdje',
+    conductTitle: 'Prije prve glasovne poruke',
+    conductBody: 'Glasovne poruke čuju svi za stolom. Bez uvreda, mržnje, prijetnji i tuđih osobnih podataka. Prijavljeni igrači gube pristup.',
+    conductAccept: 'Razumijem',
     reportPlayer: 'Prijavi igrača',
     reportPlayerNote:
       'Otvara e-poruku razvijatelju s nadimkom i kodom stola. Šalješ je ti; poslužitelj ništa ne sprema, ni glasovne poruke, pa opiši što se dogodilo.',
@@ -1026,7 +1062,7 @@ const hr: Strings = {
     reportFallback: (email) => `Ako se pošta ne otvori, piši na ${email}`,
     reportSubject: 'Bela Štih: prijava igrača',
     reportBody: (p) =>
-      `Prijavljujem igrača s nadimkom: „${p.name}”\nKod stola: ${p.code}\nVrijeme: ${p.at}\nVerzija igre: ${p.version}\n\nŠto je bilo neprimjereno (nije obavezno):\n`,
+      `Prijavljujem igrača s nadimkom: „${p.name}”\nKod stola: ${p.code}\nVrijeme: ${p.at}\nVerzija igre: ${p.version}${p.id ? `\nOznaka instalacije: ${p.id}` : ''}\n\nŠto je bilo neprimjereno (nije obavezno):\n`,
     playerHint: 'Dodirni za dar ili prijavu',
     resultMissed: 'Veza se prekinula, pa brojke ovog dijeljenja nisu stigle.',
     matchWon: 'Pobijedili smo!',
@@ -1525,6 +1561,10 @@ const srCyrl: Strings = {
     troubleTableClosed: 'За тим столом се већ игра, или је пун.',
     troubleOffline: 'Нема везе. Провери интернет па покушај поново.',
     troubleAppTooOld: 'Ова верзија апликације више не може да игра онлајн. Ажурирај је у Google Play продавници.',
+    troubleBlocked: 'За овим столом је неко са твог списка блокираних, или неко ко има тебе на своме.',
+    troubleBanned: 'Ова инсталација игре више не може да игра онлајн.',
+    troubleMaintenance: 'Сервер је накратко затворен због одржавања. Покушај за неколико минута.',
+    updateApp: 'Ажурирај',
     troubleServer: 'Сервер се тренутно не јавља како треба. Покушај поново за који тренутак.',
     troubleDropped: 'Сто више не чека. Покушај поново или се врати на почетак.',
     troubleSameNetwork:
@@ -1548,6 +1588,18 @@ const srCyrl: Strings = {
     hidePlayer: 'Сакриј овог играча',
     showPlayer: 'Поново прикажи играча',
     hidePlayerNote: 'До краја овог стола овај играч ти је скривен: име, емотикони, поклони и гласовне поруке.',
+    blockPlayer: 'Блокирај играча',
+    blockPlayerNote: 'Трајно, на овом уређају: у брзој игри више не седате за исти сто, а поруке, емотикони и поклони овог играча не стижу до тебе. Списак је у подешавањима.',
+    blockedPlayers: 'Блокирани играчи',
+    blockedNone: 'Нико није блокиран.',
+    unblock: 'Одблокирај',
+    voiceOptInTitle: 'Гласовне поруке за овим столом?',
+    voiceOptInBody: 'Овде играш са непознатима. Ако их укључиш, њихове гласовне поруке свирају саме; сваког играча можеш да утишаш, сакријеш, блокираш или пријавиш.',
+    voiceOptInYes: 'Укључи',
+    voiceOptInNo: 'Не овде',
+    conductTitle: 'Пре прве гласовне поруке',
+    conductBody: 'Гласовне поруке чују сви за столом. Без увреда, мржње, претњи и туђих личних података. Пријављени играчи губе приступ.',
+    conductAccept: 'Разумем',
     reportPlayer: 'Пријави играча',
     reportPlayerNote:
       'Отвара имејл програмеру са надимком и кодом стола. Шаљеш га ти; сервер ништа не чува, ни гласовне поруке, па опиши шта се десило.',
@@ -1583,7 +1635,7 @@ const srCyrl: Strings = {
     reportFallback: (email) => `Ако се пошта не отвори, пиши на ${email}`,
     reportSubject: 'Бела Штих: пријава играча',
     reportBody: (p) =>
-      `Пријављујем играча са надимком: „${p.name}”\nКод стола: ${p.code}\nВреме: ${p.at}\nВерзија игре: ${p.version}\n\nШта је било неприкладно (није обавезно):\n`,
+      `Пријављујем играча са надимком: „${p.name}”\nКод стола: ${p.code}\nВреме: ${p.at}\nВерзија игре: ${p.version}${p.id ? `\nОзнака инсталације: ${p.id}` : ''}\n\nШта је било неприкладно (није обавезно):\n`,
     playerHint: 'Додирни за поклон или пријаву',
     resultMissed: 'Веза се прекинула, па бројке овог дељења нису стигле.',
     matchWon: 'Победили смо!',
@@ -2079,6 +2131,10 @@ const en: Strings = {
     troubleTableClosed: 'That table is already playing, or full.',
     troubleOffline: 'No connection. Check your internet and try again.',
     troubleAppTooOld: 'This version of the app can no longer play online. Update it in Google Play.',
+    troubleBlocked: 'Somebody at this table is on your blocked list, or has you on theirs.',
+    troubleBanned: 'This installation of the game can no longer play online.',
+    troubleMaintenance: 'The server is closed for a few minutes of maintenance. Try again shortly.',
+    updateApp: 'Update',
     troubleServer: "The server isn't answering properly right now. Try again in a moment.",
     troubleDropped: 'The table is no longer waiting. Try again, or go back to the start.',
     troubleSameNetwork:
@@ -2102,6 +2158,18 @@ const en: Strings = {
     hidePlayer: 'Hide this player',
     showPlayer: 'Show this player again',
     hidePlayerNote: 'For the rest of this table this player is hidden from you: name, emotes, gifts and voice messages.',
+    blockPlayer: 'Block this player',
+    blockPlayerNote: 'For good, on this device: quick play never seats you at the same table again, and their messages, emotes and gifts do not reach you. The list is in Settings.',
+    blockedPlayers: 'Blocked players',
+    blockedNone: 'Nobody is blocked.',
+    unblock: 'Unblock',
+    voiceOptInTitle: 'Voice messages at this table?',
+    voiceOptInBody: 'You are playing with strangers here. If you turn them on, their voice messages play by themselves; any player can be muted, hidden, blocked or reported.',
+    voiceOptInYes: 'Turn on',
+    voiceOptInNo: 'Not here',
+    conductTitle: 'Before your first voice message',
+    conductBody: "Everyone at the table hears voice messages. No insults, hate, threats or other people's personal details. Reported players lose access.",
+    conductAccept: 'Understood',
     reportPlayer: 'Report this player',
     reportPlayerNote:
       'Opens an email to the developer with the nickname and table code. You send it; the server keeps nothing, voice messages included, so describe what happened.',
@@ -2137,7 +2205,7 @@ const en: Strings = {
     reportFallback: (email) => `If no mail app opens, write to ${email}`,
     reportSubject: 'Bela Štih: player report',
     reportBody: (p) =>
-      `Reporting the player with the nickname: "${p.name}"\nTable code: ${p.code}\nTime: ${p.at}\nApp version: ${p.version}\n\nWhat was wrong (optional):\n`,
+      `Reporting the player with the nickname: "${p.name}"\nTable code: ${p.code}\nTime: ${p.at}\nApp version: ${p.version}${p.id ? `\nInstallation ID: ${p.id}` : ''}\n\nWhat was wrong (optional):\n`,
     playerHint: 'Tap to send a gift or report',
     resultMissed: "The connection dropped, so this deal's numbers are missing.",
     matchWon: 'We won!',

@@ -298,6 +298,11 @@ export interface EmoteMessage {
 }
 
 export interface SeatInfo {
+  /**
+   * The install ID this seat's app gave at its join (1.6.0): the handle a block
+   * or a report names. Random and opaque; absent for bots and older apps.
+   */
+  installId?: string;
   seat: Seat;
   name: string;
   /** Preset avatar id chosen client-side; empty string when none was sent. */

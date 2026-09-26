@@ -167,6 +167,7 @@
  "apps/server/src/protocol.ts:SeatInfo": {
   "kind": "object",
   "props": {
+   "installId?": "string | undefined",
    "seat": "0 | 1 | 2 | 3",
    "name": "string",
    "avatar": "string",

@@ -164,7 +164,7 @@ describe('the app around it', () => {
   it("keeps the recorder with the online screen, so the table's rows cannot take a take with them", () => {
     const o = src('net/OnlineGame.tsx');
     expect(o).toMatch(/const mic = useVoiceRecorder\(/);
-    expect(o).toMatch(/mic=\{voiceHere \? mic : undefined\}/);
+    expect(o).toMatch(/mic=\{voiceHere \? gatedMic : undefined\}/);
     // Voice switched off mid-take: dropped, and never sent.
     expect(o).toMatch(/if \(!voiceHereRef\.current\) return;\s*sendVoice\(take\);\s*sentStarted\(\);/);
     expect(o).toMatch(/if \(!voiceHere\) void finishTake\(false\);/);
@@ -405,8 +405,8 @@ describe('the table, with voice', () => {
 
   it('hears nothing where voice is off, at the table or in Settings', () => {
     const o = src('net/OnlineGame.tsx');
-    expect(o).toMatch(/const voiceHere = settings\.voice && net\.voiceOn;/);
-    expect(o).toMatch(/mic=\{voiceHere \? mic : undefined\}/);
+    expect(o).toMatch(/const voiceHere = settings\.voice && net\.voiceOn && cfg\.voice;/);
+    expect(o).toMatch(/mic=\{voiceHere \? gatedMic : undefined\}/);
     expect(o).toMatch(/\(s\) => net\.hidden\.includes\(s\) \|\| net\.muted\.includes\(s\),/);
     // The host's switch in the lobby, as the other rules.
     expect(o).toMatch(/label=\{ui\.voiceRule\}\s*host=\{isHost\}/);

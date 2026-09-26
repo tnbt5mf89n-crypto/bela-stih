@@ -6,7 +6,8 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useBackCloses } from '../ui/backGuard';
 import type { Lang } from '@belot/i18n';
 import type { PlayerProfile } from '@belot/progression';
-import { resetProfile, type Settings, VOLUME_OPTIONS } from '../storage';
+import { loadBlocked, resetProfile, saveBlocked, type Settings, VOLUME_OPTIONS } from '../storage';
+import { withoutBlock } from '../identity';
 import { room, setDeckStyle } from '../cosmetics';
 import { PlayingCard } from '../PlayingCard';
 import { playSfx, setMasterVolume, setSoundEnabled } from '../audio';
@@ -43,6 +44,8 @@ export function SettingsScreen({
 }) {
   const ui = lang.s.ui;
   const [asking, setAsking] = useState(false);
+  // Players blocked on this device (identity.ts), with a way back.
+  const [blocked, setBlocked] = useState(loadBlocked);
   // Back answers the question safely rather than leaving the settings under it.
   useBackCloses(asking, () => setAsking(false));
 
@@ -279,6 +282,30 @@ export function SettingsScreen({
             </PressScale>
           ))}
         </View>
+      </Panel>
+
+      {section(ui.blockedPlayers)}
+      <Panel>
+        {blocked.length === 0 ? (
+          <Text style={styles.hint}>{ui.blockedNone}</Text>
+        ) : (
+          blocked.map((b) => (
+            <View key={b.id} style={styles.row}>
+              <Text style={styles.rowLabel} numberOfLines={1}>
+                {b.name || b.id.slice(0, 8)} · {b.at}
+              </Text>
+              <Button
+                label={ui.unblock}
+                tone="plain"
+                onPress={() => {
+                  const next = withoutBlock(blocked, b.id);
+                  saveBlocked(next);
+                  setBlocked(next);
+                }}
+              />
+            </View>
+          ))
+        )}
       </Panel>
 
       <Panel label={lang.s.deckStyleLabel}>

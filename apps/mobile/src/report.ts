@@ -20,6 +20,8 @@ export interface ReportFacts {
   code: string;
   at: string;
   version: string;
+  /** The reported seat's install ID (identity.ts), when its app gave one: the handle a ban can use. */
+  id?: string;
 }
 
 export function reportMailto(

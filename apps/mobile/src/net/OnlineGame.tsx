@@ -46,10 +46,16 @@ import { summarize } from '../matchLog';
 import { isoDay } from '@belot/progression';
 import { useNetGame, type NetGame } from './useNetGame';
 import { useVoicePlayback } from '../voice/useVoicePlayback';
-import { useVoiceRecorder, type Take } from '../voice/useVoiceRecorder';
+import { useVoiceRecorder, type Take, type VoiceMic } from '../voice/useVoiceRecorder';
 import { useVoiceSendStatus } from '../voice/useVoiceSendStatus';
 import { sendStatusText } from '../voice/voice';
 import { retryHelps } from './trouble';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { acceptConduct, conductAccepted } from '../storage';
+import { useRemoteConfig } from '../remoteConfig';
+
+/** Where an app too old for the server goes to update: the Play listing (the web is always current). */
+const STORE_URL = Platform.OS === 'android' ? 'market://details?id=com.slfresh.belastih' : 'https://play.google.com/store/apps/details?id=com.slfresh.belastih';
 
 /**
  * An online game. Everything about the rules comes from the server; this only
@@ -81,7 +87,10 @@ export function OnlineGame({
   // others' clips play by themselves (never a hidden or muted player's), and
   // my own echo rings my puck for as long as the table hears it. Here rather
   // than at the table, so a clip that lands in the lobby is heard too.
-  const voiceHere = settings.voice && net.voiceOn;
+  // The server's switches (remoteConfig.ts): a feature turned off is not offered.
+  const cfg = useRemoteConfig();
+  const ui = net.lang.s.ui;
+  const voiceHere = settings.voice && net.voiceOn && cfg.voice;
   // A clip that really starts playing here is confirmed to its speaker.
   const playback = useVoicePlayback(
     voiceHere,
@@ -135,6 +144,26 @@ export function OnlineGame({
     ),
   );
   const { finish: finishTake, note: micNote } = mic;
+  // Play's terms-before-UGC rule: the rules of conduct are shown, once, before
+  // the first voice message ever leaves this device. The press that meets the
+  // sheet records nothing; the next one does.
+  const [conductAsk, setConductAsk] = useState(false);
+  const gatedMic = useMemo<VoiceMic>(
+    () => ({
+      ...mic,
+      start: async () => {
+        if (!conductAccepted()) {
+          setConductAsk(true);
+          return;
+        }
+        await mic.start();
+      },
+    }),
+    [mic],
+  );
+  // A public table with voice on asks, once per table, before strangers are heard.
+  const [optInAskedFor, setOptInAskedFor] = useState<string | null>(null);
+  const askOptIn = net.voiceOptIn && settings.voice && cfg.voice && !net.optedIn && optInAskedFor !== net.roomId && net.roomId !== null;
   useEffect(() => {
     if (!voiceHere) void finishTake(false);
   }, [voiceHere, finishTake]);
@@ -363,6 +392,7 @@ export function OnlineGame({
   const away = net.standIns;
 
   return (
+    <>
     <TableScreen
       mySeat={net.seat}
       lang={net.lang}
@@ -438,8 +468,8 @@ export function OnlineGame({
       onNext={net.next}
       onFinish={leaveAndExit}
       finishLabel={net.lang.s.ui.leaveTable}
-      onEmote={net.sendEmote}
-      mic={voiceHere ? mic : undefined}
+      onEmote={cfg.emotes ? net.sendEmote : undefined}
+      mic={voiceHere ? gatedMic : undefined}
       micStatus={voiceHere ? micStatus : null}
       voiceMode={settings.voiceMode}
       speaking={speaking}
@@ -450,9 +480,10 @@ export function OnlineGame({
       giftFrom={net.giftFrom}
       giftReadyAt={net.giftReadyAt}
       giftReach={net.giftReach}
-      onGift={net.sendGift}
+      onGift={cfg.gifts ? net.sendGift : undefined}
       hidden={net.hidden}
       onHide={net.hide}
+      onBlock={net.block}
       onReport={(s) => {
         // The player's own mail app: the nickname as the room has it, the
         // table, the time and the version; nothing about the reporter.
@@ -461,10 +492,41 @@ export function OnlineGame({
           code: net.roomId ?? '',
           at: reportStamp(new Date()),
           version: APP_VERSION,
+          // Whom it is about, by installation (identity.ts) - the one durable handle there is.
+          id: net.installIdOf(s),
         });
         void Linking.openURL(url).catch(() => {});
       }}
     />
+      {askOptIn && (
+        <ConfirmDialog
+          title={ui.voiceOptInTitle}
+          body={ui.voiceOptInBody}
+          confirmLabel={ui.voiceOptInYes}
+          cancelLabel={ui.voiceOptInNo}
+          ground={room().page}
+          onConfirm={() => {
+            setOptInAskedFor(net.roomId);
+            net.voiceIn(true);
+          }}
+          onCancel={() => setOptInAskedFor(net.roomId)}
+        />
+      )}
+      {conductAsk && (
+        <ConfirmDialog
+          title={ui.conductTitle}
+          body={ui.conductBody}
+          confirmLabel={ui.conductAccept}
+          cancelLabel={ui.close}
+          ground={room().page}
+          onConfirm={() => {
+            acceptConduct();
+            setConductAsk(false);
+          }}
+          onCancel={() => setConductAsk(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -528,6 +590,12 @@ function Waiting({ net, onExit }: { net: NetGame; onExit: () => void }) {
             ? ui.troubleSameNetwork
             : net.trouble === 'appTooOld'
             ? ui.troubleAppTooOld
+            : net.trouble === 'blocked'
+              ? ui.troubleBlocked
+              : net.trouble === 'banned'
+                ? ui.troubleBanned
+                : net.trouble === 'maintenance'
+                  ? ui.troubleMaintenance
             : net.trouble === 'offline'
             ? ui.troubleOffline
             : ui.troubleServer
@@ -592,6 +660,7 @@ function Waiting({ net, onExit }: { net: NetGame; onExit: () => void }) {
       <Text style={styles.title}>{message}</Text>
       {why && <Text style={styles.why}>{why}</Text>}
       {canRetry && <Button label={ui.retry} tone="strong" onPress={net.retry} />}
+      {net.status === 'error' && net.trouble === 'appTooOld' && <Button label={ui.updateApp} tone="strong" onPress={() => void Linking.openURL(STORE_URL).catch(() => {})} />}
       {offerBots && (
         <>
           <Text style={styles.hint}>{ui.nobodyYet}</Text>
