@@ -37,6 +37,8 @@ export interface AnchorRect {
   y: number;
   w: number;
   h: number;
+  /** Degrees the thing was turned where it was measured (a card in the fan), so a flight can set off at that angle. */
+  tilt?: number;
 }
 
 type Listener = () => void;

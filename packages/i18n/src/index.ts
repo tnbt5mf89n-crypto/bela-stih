@@ -267,6 +267,10 @@ export interface UiStrings {
   playerHint: string;
   /** The sheet for a deal whose score this client never saw (after a reconnect). */
   resultMissed: string;
+  /** "Pregled ruke" (1.6.0): the deal's tricks, from the table's public history. */
+  reviewHand: string;
+  reviewTrick: (n: number) => string;
+  reviewTook: (name: string) => string;
   /** The end of a match, said from our side (plural, so no gender). */
   matchWon: string;
   matchLost: string;
@@ -1079,6 +1083,9 @@ const hr: Strings = {
       `Prijavljujem igrača s nadimkom: „${p.name}”\nKod stola: ${p.code}\nVrijeme: ${p.at}\nVerzija igre: ${p.version}${p.id ? `\nOznaka instalacije: ${p.id}` : ''}\n\nŠto je bilo neprimjereno (nije obavezno):\n`,
     playerHint: 'Dodirni za dar ili prijavu',
     resultMissed: 'Veza se prekinula, pa brojke ovog dijeljenja nisu stigle.',
+    reviewHand: 'Pregled ruke',
+    reviewTrick: (n) => `${n}. štih`,
+    reviewTook: (name) => `uzima ${name}`,
     matchWon: 'Pobijedili smo!',
     matchLost: 'Izgubili smo',
     pause: 'Pauza',
@@ -1662,6 +1669,9 @@ const srCyrl: Strings = {
       `Пријављујем играча са надимком: „${p.name}”\nКод стола: ${p.code}\nВреме: ${p.at}\nВерзија игре: ${p.version}${p.id ? `\nОзнака инсталације: ${p.id}` : ''}\n\nШта је било неприкладно (није обавезно):\n`,
     playerHint: 'Додирни за поклон или пријаву',
     resultMissed: 'Веза се прекинула, па бројке овог дељења нису стигле.',
+    reviewHand: 'Преглед руке',
+    reviewTrick: (n) => `${n}. штих`,
+    reviewTook: (name) => `узима ${name}`,
     matchWon: 'Победили смо!',
     matchLost: 'Изгубили смо',
     pause: 'Пауза',
@@ -2242,6 +2252,9 @@ const en: Strings = {
       `Reporting the player with the nickname: "${p.name}"\nTable code: ${p.code}\nTime: ${p.at}\nApp version: ${p.version}${p.id ? `\nInstallation ID: ${p.id}` : ''}\n\nWhat was wrong (optional):\n`,
     playerHint: 'Tap to send a gift or report',
     resultMissed: "The connection dropped, so this deal's numbers are missing.",
+    reviewHand: 'Review the deal',
+    reviewTrick: (n) => `Trick ${n}`,
+    reviewTook: (name) => `${name} takes it`,
     matchWon: 'We won!',
     matchLost: 'We lost',
     pause: 'Pause',

@@ -161,6 +161,44 @@ describe('the tempo', () => {
   });
 });
 
+describe('a card in flight', () => {
+  it('keeps the tilt it left the fan with, arcs a little, and settles as it lands', () => {
+    const t = readFileSync(join(SRC, 'TableScreen.tsx'), 'utf8');
+    // The tapped card's rect carries its angle in the fan...
+    expect(t).toMatch(/anchors\.set\(anchorId\.card\(id\), \{[^}]*tilt: rotate \}\)/);
+    // ...the spawner hands it to the flight...
+    expect(readFileSync(join(SRC, 'table/fx.ts'), 'utf8')).toMatch(/tilt: tapped\?\.tilt/);
+    expect(readFileSync(join(SRC, 'anim/FxBus.ts'), 'utf8')).toMatch(/tilt\?: number;/);
+    // ...which straightens from that angle instead of a fixed -8, arcs by sin, and settles over the last 60 ms.
+    const o = readFileSync(join(SRC, 'anim/EffectsOverlay.tsx'), 'utf8');
+    expect(o).toMatch(/const tilt = fx\.tilt \?\? -8;/);
+    expect(o).toMatch(/rotateZ: `\$\{\(1 - p\.value\) \* tilt\}deg`/);
+    expect(o).toMatch(/Math\.sin\(p\.value \* Math\.PI\) \* arc/);
+    expect(o).toMatch(/const arc = Math\.min\(40, dist \* 0\.08\);/);
+    expect(o).toMatch(/const settleFrom = Math\.max\(0\.5, 1 - 60 \/ Math\.max\(1, fx\.duration\)\);/);
+    expect(o).toMatch(/1 \+ 0\.04 \*/);
+    // Reduce-motion keeps its fade in place: no arc, no tilt.
+    expect(o).toMatch(/fx\.fade\s*\?\s*\{\s*\/\/ Reduce-motion/);
+  });
+});
+
+describe('Pregled ruke', () => {
+  it('is offered on the result sheet whenever the public history has tricks, and lists every play with its seat', () => {
+    const t = readFileSync(join(SRC, 'TableScreen.tsx'), 'utf8');
+    expect(t).toMatch(/const reviewable = settled && !!view\.history && view\.history\.tricks\.length > 0;/);
+    expect(t).toMatch(/onReview=\{reviewable \? \(\) => setReviewing\(true\) : undefined\}/);
+    expect((t.match(/onReview && <Button label=\{lang\.s\.ui\.reviewHand\}/g) ?? []).length).toBe(2);
+    expect(t).toMatch(/\{reviewing && view\.history && \(\s*<HandReview/);
+    // It closes with the sheet.
+    expect(t).toMatch(/if \(!settled\) setReviewing\(false\);/);
+    const r = readFileSync(join(SRC, 'table/HandReview.tsx'), 'utf8');
+    expect(r).toMatch(/history\.tricks\.map\(/);
+    expect(r).toMatch(/t\.plays\.map\(/);
+    expect(r).toMatch(/highlight=\{p\.seat === t\.winner\}/);
+    expect(r).toMatch(/accessibilityViewIsModal/);
+  });
+});
+
 describe('Velike karte', () => {
   it('grows the hand about 15% where the width allows, and the phone still fits its column', () => {
     expect(BIG_CARDS_FACTOR).toBe(1.15);

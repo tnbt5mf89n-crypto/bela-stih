@@ -198,6 +198,15 @@ function Flight({
   const w = fx.width;
   // From the fan's size to the slot's, when it set off from the fan.
   const startScale = fx.fromWidth ? fx.fromWidth / w : 0.92;
+  // Its tilt where it set off (the fan's, for my own card; a fixed lean for
+  // a card thrown from a seat), straightening as it flies.
+  const tilt = fx.tilt ?? -8;
+  // A shallow arc - 8% of the way, never more than 40 px - and a landing
+  // settle: the card grows to 1.04 over the flight and drops to 1 in the last
+  // 60 ms, the way a thrown card lands and stops.
+  const dist = Math.hypot(to.x - from.x, to.y - from.y);
+  const arc = Math.min(40, dist * 0.08);
+  const settleFrom = Math.max(0.5, 1 - 60 / Math.max(1, fx.duration));
   const p = useSharedValue(0);
   useEffect(() => {
     p.value = withTiming(1, { duration: fx.duration, easing: Easing.out(Easing.cubic) });
@@ -213,9 +222,13 @@ function Flight({
       : {
           transform: [
             { translateX: from.x + (to.x - from.x) * p.value - w / 2 },
-            { translateY: from.y + (to.y - from.y) * p.value - (w * 1.45) / 2 },
-            { scale: startScale + (1 - startScale) * p.value },
-            { rotateZ: `${(1 - p.value) * -8}deg` },
+            { translateY: from.y + (to.y - from.y) * p.value - (w * 1.45) / 2 - Math.sin(p.value * Math.PI) * arc },
+            {
+              scale:
+                (startScale + (1 - startScale) * p.value) *
+                (1 + 0.04 * (p.value < settleFrom ? p.value / settleFrom : 1 - (p.value - settleFrom) / (1 - settleFrom))),
+            },
+            { rotateZ: `${(1 - p.value) * tilt}deg` },
             // An opponent's card turns over: edge-on at the flip, where the
             // back gives way to the face. Mine is face up from the tap.
             {

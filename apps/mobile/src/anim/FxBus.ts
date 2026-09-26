@@ -37,6 +37,8 @@ export type Fx =
       fromWidth?: number;
       /** Reduce-motion: appear at the destination instead of flying. */
       fade?: boolean;
+      /** Degrees the card was turned where it set off (its tilt in the fan); it straightens in flight. */
+      tilt?: number;
     }
   | {
       kind: 'deal';

@@ -278,6 +278,9 @@ export function makeFxSpawner(opts: FxSpawnerOptions) {
             width: slotW(e.seat),
             fromWidth: tapped && !reduced ? tapped.w : undefined,
             fade: reduced,
+            // The edge of the fan leans ±15°; leaving at that angle instead of a
+            // fixed −8° is what keeps the card from snapping as it lifts off.
+            tilt: tapped?.tilt,
           });
         }
         break;

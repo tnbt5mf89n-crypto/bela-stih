@@ -79,6 +79,7 @@ import { PerfProbe } from './dev/PerfProbe';
 import { EmoteStrip } from './table/EmoteStrip';
 import { GiftPicker } from './table/GiftPicker';
 import { MicButton, TakeClock } from './table/MicButton';
+import { HandReview } from './table/HandReview';
 import { SpeakingLine } from './table/SpeakingLine';
 import type { VoiceMic } from './voice/useVoiceRecorder';
 import { useTurnCues } from './table/useTurnCues';
@@ -1726,6 +1727,12 @@ export function TableScreen(props: TableScreenProps) {
     anchors.bump();
   }, [anchors, reflowKey]);
 
+  // "Pregled ruke": the deal's tricks from the public history, over the result sheet.
+  const [reviewing, setReviewing] = useState(false);
+  useEffect(() => {
+    if (!settled) setReviewing(false);
+  }, [settled]);
+  const reviewable = settled && !!view.history && view.history.tricks.length > 0;
   const lostMatch = matchOver && winnerTeam !== null && winnerTeam !== teamOf(mySeat);
   const resultSheet = settled ? (
     <Animated.View
@@ -1742,6 +1749,7 @@ export function TableScreen(props: TableScreenProps) {
         matchScores={matchScores}
         matchOver={matchOver}
         award={banner}
+        onReview={reviewable ? () => setReviewing(true) : undefined}
         winnerLabel={winnerTeam !== null ? lang.team(winnerTeam, mySeat) : ''}
         weWon={matchOver && winnerTeam !== null ? winnerTeam === teamOf(mySeat) : null}
         renonsText={
@@ -1924,6 +1932,18 @@ export function TableScreen(props: TableScreenProps) {
           )}
 
           {resultSheet}
+          {reviewing && view.history && (
+            <HandReview
+              lang={lang}
+              history={view.history}
+              mySeat={mySeat}
+              nameOf={(x) => meta(x).name}
+              deckStyle={deck}
+              ground={baize.page}
+              reduced={reduced}
+              onClose={() => setReviewing(false)}
+            />
+          )}
 
           {/* sprites, always last */}
           <EffectsOverlay bus={fxBus} />
@@ -2711,7 +2731,7 @@ const FanCard = memo(
         // sets off at the fan's size rather than popping from the box's.
         if (Number.isFinite(x) && w > 0) {
           const cardH = width * CARD_ASPECT;
-          anchors.set(anchorId.card(id), { x: x + w / 2 - width / 2, y: y + h / 2 - cardH / 2, w: width, h: cardH });
+          anchors.set(anchorId.card(id), { x: x + w / 2 - width / 2, y: y + h / 2 - cardH / 2, w: width, h: cardH, tilt: rotate });
         }
         onPress(id);
       });
@@ -2912,6 +2932,7 @@ function DealResult({
   onNext,
   onFinish,
   finishLabel,
+  onReview,
   reduced = false,
   voiceBar = null,
   wide = false,
@@ -2957,6 +2978,8 @@ function DealResult({
   onNext: () => void;
   onFinish: () => void;
   finishLabel: string;
+  /** "Pregled ruke": opens the deal's tricks; absent when there is no history to show. */
+  onReview?: () => void;
 }) {
   const us = teamOf(mySeat);
   const them = (1 - us) as TeamId;
@@ -3005,6 +3028,7 @@ function DealResult({
       onNext={onNext}
       onFinish={onFinish}
       finishLabel={finishLabel}
+      onReview={onReview}
       pinned={pinFoot}
     />
   );
@@ -3230,6 +3254,7 @@ function ResultFoot({
   onNext,
   onFinish,
   finishLabel,
+  onReview,
   pinned = false,
 }: {
   lang: Lang;
@@ -3244,6 +3269,7 @@ function ResultFoot({
   onNext: () => void;
   onFinish: () => void;
   finishLabel: string;
+  onReview?: () => void;
   /** In the pinned voice bar (sideways): no gap above, flush right. */
   pinned?: boolean;
 }) {
@@ -3273,6 +3299,7 @@ function ResultFoot({
               )}
             </>
           )}
+          {onReview && <Button label={lang.s.ui.reviewHand} tone="plain" onPress={onReview} />}
           <Button label={finishLabel} tone="plain" onPress={onFinish} />
         </View>
       ) : (
@@ -3282,6 +3309,7 @@ function ResultFoot({
           ) : (
             <Button label={lang.s.nextDeal} tone="strong" onPress={onNext} />
           )}
+          {onReview && <Button label={lang.s.ui.reviewHand} tone="plain" onPress={onReview} />}
           <Button label={finishLabel} tone="plain" onPress={onFinish} />
         </View>
       )}

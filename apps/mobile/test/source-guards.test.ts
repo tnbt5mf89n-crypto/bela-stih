@@ -847,7 +847,8 @@ describe('table gifts', () => {
     const foot = t.slice(at, t.indexOf('<Button label={lang.s.nextDeal}', at));
     expect(foot).toMatch(/<Button label=\{rematchLabel \?\? lang\.s\.ui\.playAgain\} tone="strong" onPress=\{onRematch\} \/>/);
     // The way out sits outside the rematch block: never gated on onRematch.
-    expect(foot).toMatch(/<\/>\s*\)\}\s*<Button label=\{finishLabel\} tone="plain" onPress=\{onFinish\} \/>\s*<\/View>/);
+    // ("Pregled ruke" may sit between, since 1.6.0; it is not gated on onRematch either.)
+    expect(foot).toMatch(/<\/>\s*\)\}\s*(?:\{onReview && <Button[^>]*\/>\}\s*)?<Button label=\{finishLabel\} tone="plain" onPress=\{onFinish\} \/>\s*<\/View>/);
   });
 
   it('the table passes each seat its gift, and draws the picker over the sprites', () => {
