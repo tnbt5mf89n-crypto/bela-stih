@@ -13,7 +13,7 @@ import { botThinkMs } from '../anim/think';
 import { EMPTY_LOG, logEvent } from '../matchLog';
 import { troubleOf, type Trouble } from './trouble';
 import { isPlayMode, modeFromLegacy, type PlayMode } from '../playMode';
-import { sniffMime, type VoiceMime, type VoiceEcho } from '../voice/voice';
+import { loudnessOf, sniffMime, type VoiceMime, type VoiceEcho } from '../voice/voice';
 import type { Take } from '../voice/useVoiceRecorder';
 import { FxBus } from '../anim/FxBus';
 import { makeFxSpawner, spawnEmote } from '../table/fx';
@@ -150,6 +150,8 @@ export interface VoiceIn {
   ms: number;
   mime: VoiceMime;
   data: Uint8Array;
+  /** The sender's loudness header, dBFS, when their app sent one (1.6.0). */
+  loudness?: number;
 }
 
 interface RoomMessage {
@@ -663,7 +665,7 @@ export function useNetGame(settings: Settings) {
     // now - my puck rings for as long, and the mic says whom it went to.
     room.onMessage(
       'voice',
-      (msg: { from?: unknown; id?: unknown; ms?: unknown; data?: unknown; to?: unknown; noReceipt?: unknown } | null) => {
+      (msg: { from?: unknown; id?: unknown; ms?: unknown; data?: unknown; to?: unknown; noReceipt?: unknown; loudness?: unknown } | null) => {
       const from = msg?.from;
       const ms = msg?.ms;
       if (typeof from !== 'number' || from < 0 || from > 3 || typeof ms !== 'number') return;
@@ -687,7 +689,7 @@ export function useNetGame(settings: Settings) {
       const data = raw instanceof Uint8Array ? raw : raw instanceof ArrayBuffer ? new Uint8Array(raw) : null;
       const mime = data ? sniffMime(data) : null;
       if (!data || !mime) return;
-      voiceInRef.current?.({ from: seat, id: typeof msg!.id === 'number' ? msg!.id : 0, ms, mime, data });
+      voiceInRef.current?.({ from: seat, id: typeof msg!.id === 'number' ? msg!.id : 0, ms, mime, data, loudness: loudnessOf(msg!.loudness) });
       },
     );
     // Somebody's app has started playing my clip.
@@ -924,7 +926,7 @@ export function useNetGame(settings: Settings) {
 
   /** A take, sent whole; the room relays it to the others and echoes it without the audio. */
   const sendVoice = useCallback((take: Take) => {
-    roomRef.current?.send('voice', { mime: take.mime, ms: take.ms, data: take.data });
+    roomRef.current?.send('voice', { mime: take.mime, ms: take.ms, data: take.data, loudness: take.loudness });
   }, []);
   /** A clip from the table has started playing here: its speaker is told. */
   const confirmHeard = useCallback((id: number) => {

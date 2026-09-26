@@ -60,7 +60,7 @@
         "expo-audio",
         {
           "enableBackgroundPlayback": false,
-          "microphonePermission": "Bela Štih uses the microphone only while you hold the voice message button."
+          "microphonePermission": "Bela Štih uses the microphone only while you record a voice message."
         }
       ],
       "./plugins/withUploadSigning",

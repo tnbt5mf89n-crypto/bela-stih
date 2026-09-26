@@ -28,6 +28,11 @@ export interface Clip {
  * with the EBML magic - so what goes out is at least the audio it claims to
  * be, whatever a modified client sends.
  */
+/** A loudness header as it arrives: a finite dBFS between -60 and 0, or nothing. Relayed, never read. */
+export function loudnessOf(v: unknown): number | undefined {
+  return typeof v === 'number' && Number.isFinite(v) && v >= -60 && v <= 0 ? v : undefined;
+}
+
 export function checkClip(mime: unknown, data: unknown, ms: unknown): Clip | null {
   if (typeof mime !== 'string' || !VOICE_MIMES.includes(mime)) return null;
   if (!(data instanceof Uint8Array)) return null;

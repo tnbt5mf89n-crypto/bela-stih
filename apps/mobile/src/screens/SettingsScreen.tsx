@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Linking, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { PressScale } from '../ui/PressScale';
 import { Button } from '../ui/Button';
@@ -14,6 +14,7 @@ import { playSfx, setMasterVolume, setSoundEnabled } from '../audio';
 import { font, ink, radius, space, surface, theme, type } from '../theme';
 import { APP_VERSION, Panel, ScreenShell } from './common';
 import { modeName, PLAY_MODES } from '../playMode';
+import { runGolden } from '../../../../packages/engine/test/golden/run';
 
 const LOCALES: ReadonlyArray<{ id: Settings['locale']; label: string }> = [
   { id: 'hr', label: 'Hrvatski' },
@@ -46,6 +47,27 @@ export function SettingsScreen({
   const [asking, setAsking] = useState(false);
   // Players blocked on this device (identity.ts), with a way back.
   const [blocked, setBlocked] = useState(loadBlocked);
+  // Dijagnostika (1.6.0): five taps on the version line. Its one tool replays the
+  // golden corpus (packages/engine/test/golden) on THIS phone's JavaScript engine
+  // and compares the play hash with the fixture the server's own tests use - the
+  // proof that Hermes plays the rules byte for byte as Node and Chromium do.
+  const taps = useRef<number[]>([]);
+  const [diag, setDiag] = useState(false);
+  const [golden, setGolden] = useState<{ ok: boolean; text: string } | null>(null);
+  const tapVersion = () => {
+    const now = Date.now();
+    taps.current = [...taps.current.filter((t) => now - t < 3000), now];
+    if (taps.current.length >= 5) setDiag(true);
+  };
+  const replayGolden = () => {
+    const t0 = Date.now();
+    const report = runGolden();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- the fixture, as the tests read it
+    const expected = require('../../../../packages/engine/test/golden/expected.json') as { hash: string; playHash: string };
+    const ms = Date.now() - t0;
+    const same = report.playHash === expected.playHash && report.hash === expected.hash;
+    setGolden({ ok: same, text: same ? ui.diagOk(ms) : ui.diagDiff(report.playHash.slice(0, 8)) });
+  };
   // Back answers the question safely rather than leaving the settings under it.
   useBackCloses(asking, () => setAsking(false));
 
@@ -302,6 +324,29 @@ export function SettingsScreen({
             </PressScale>
           ))}
         </View>
+        {/* The clips' own level, over the master: meaningless while voice is off. */}
+        <Text style={[styles.rowLabel, !settings.voice && styles.asleep]}>{ui.voiceVolumeLabel}</Text>
+        <View style={[styles.localeRow, !settings.voice && styles.asleep]}>
+          {(
+            [
+              { v: VOLUME_OPTIONS[0], label: ui.volumeQuiet },
+              { v: VOLUME_OPTIONS[1], label: ui.volumeMedium },
+              { v: VOLUME_OPTIONS[2], label: ui.volumeLoud },
+            ] as const
+          ).map((o) => (
+            <PressScale
+              key={o.v}
+              disabled={!settings.voice}
+              onPress={() => onSettingsChange({ ...settings, voiceVolume: o.v })}
+              accessibilityState={{ selected: settings.voiceVolume === o.v }}
+              style={[styles.localeChip, settings.voiceVolume === o.v && styles.localeChipOn]}
+            >
+              <Text style={[styles.localeText, settings.voiceVolume === o.v && styles.localeTextOn]}>
+                {o.label}
+              </Text>
+            </PressScale>
+          ))}
+        </View>
       </Panel>
 
       {section(ui.blockedPlayers)}
@@ -431,9 +476,19 @@ export function SettingsScreen({
         </PressScale>
       </Panel>
 
-      <Text style={styles.version}>
+      <Text style={styles.version} testID="version" onPress={tapVersion}>
         {ui.version} {APP_VERSION}
       </Text>
+      {diag && (
+        <Panel label={ui.diagTitle}>
+          <Button label={ui.diagGolden} tone="plain" testID="diag-golden" onPress={replayGolden} />
+          {golden && (
+            <Text style={styles.hint} testID="golden-result">
+              <Text testID={golden.ok ? 'golden-ok' : 'golden-diff'}>{golden.text}</Text>
+            </Text>
+          )}
+        </Panel>
+      )}
     </ScreenShell>
   );
 }

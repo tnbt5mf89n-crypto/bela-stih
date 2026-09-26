@@ -1,0 +1,9 @@
+appId: com.slfresh.belastih
+name: The table is still standing (run after scripts/device-flows.sh has rotated the phone twenty times)
+---
+- extendedWaitUntil:
+    visible:
+      id: "leave"
+    timeout: 10000
+- assertVisible:
+    id: "card-.*"

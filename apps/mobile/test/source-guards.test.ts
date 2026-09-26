@@ -1059,9 +1059,9 @@ describe('a screen reader can name every control', () => {
     // Every chip says whether it is the chosen one, by the same test that lights it.
     const chips = [...settings.matchAll(/accessibilityState=\{\{ selected: ([^}]+) \}\}\s+style=\{\[styles\.localeChip, ([^\]]+?) && styles\.localeChipOn\]\}/g)];
     // Eight groups until 1.6.0; the tempo and the vibration strength make ten.
-    expect(chips.length).toBe(10);
+    expect(chips.length).toBe(11);
     for (const m of chips) expect(m[1]!.trim()).toBe(m[2]!.trim());
-    expect((settings.match(/styles\.localeChip, /g) ?? []).length).toBe(10);
+    expect((settings.match(/styles\.localeChip, /g) ?? []).length).toBe(11);
     expect(settings).toMatch(/accessibilityRole="link"\s+accessibilityLabel=\{ui\.privacyPolicy\}/);
   });
 });

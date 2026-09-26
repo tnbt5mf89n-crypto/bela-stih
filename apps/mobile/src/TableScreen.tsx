@@ -74,7 +74,7 @@ import { callsOnTable } from './table/calls';
 import { pickAnnouncement } from './table/zvanja';
 import { BOT_AVATARS } from './table/bots';
 import type { ConfirmPlay } from './storage';
-import { cosmetics, room, roomStyle, type DeckStyle } from './cosmetics';
+import { cardLang, cosmetics, room, roomStyle, type DeckStyle } from './cosmetics';
 import { PerfProbe } from './dev/PerfProbe';
 import { EmoteStrip } from './table/EmoteStrip';
 import { GiftPicker } from './table/GiftPicker';
@@ -1690,7 +1690,7 @@ export function TableScreen(props: TableScreenProps) {
   // mid-deal, and a question before it acts. A finished match's own sheet
   // says what comes next, so the corner is empty then.
   const leaveButton = !matchOver ? (
-    <Button label={finishLabel} tone="plain" compact style={short ? styles.leaveSlim : undefined} onPress={requestLeave} />
+    <Button label={finishLabel} testID="leave" tone="plain" compact style={short ? styles.leaveSlim : undefined} onPress={requestLeave} />
   ) : null;
   // Private tables only, and only while there is a match to stop: a phone
   // rings, one tap, and the table waits for everyone.
@@ -2752,6 +2752,11 @@ const FanCard = memo(
           // Vertical only: horizontal slop would overlap the neighbouring
           // card in touch space and make mis-taps MORE likely, not less.
           hitSlop={{ top: 12, bottom: 8 }}
+          // TalkBack (1.6.0): each card is a button that says its name and whether it may be played now.
+          accessibilityRole="button"
+          accessibilityLabel={cardLang().s.cardOf(cardLang().s.rankName[card.rank], cardLang().suitName(card.suit))}
+          accessibilityState={{ disabled }}
+          testID={`card-${id}`}
         >
           <PlayingCard
             card={card}
@@ -2886,6 +2891,7 @@ function NonCardActions({
         return (
           <Button
             key={i}
+            testID={`action-${i}`}
             label={label}
             accessibilityLabel={lang.action(a)}
             tone={isBela ? 'bela' : strong ? 'strong' : 'plain'}
@@ -3299,7 +3305,7 @@ function ResultFoot({
               )}
             </>
           )}
-          {onReview && <Button label={lang.s.ui.reviewHand} tone="plain" onPress={onReview} />}
+          {onReview && <Button label={lang.s.ui.reviewHand} testID="review" tone="plain" onPress={onReview} />}
           <Button label={finishLabel} tone="plain" onPress={onFinish} />
         </View>
       ) : (
@@ -3307,9 +3313,9 @@ function ResultFoot({
           {nextDeal ? (
             <NextDealButton lang={lang} next={nextDeal} onNext={onNext} />
           ) : (
-            <Button label={lang.s.nextDeal} tone="strong" onPress={onNext} />
+            <Button label={lang.s.nextDeal} testID="next-deal" tone="strong" onPress={onNext} />
           )}
-          {onReview && <Button label={lang.s.ui.reviewHand} tone="plain" onPress={onReview} />}
+          {onReview && <Button label={lang.s.ui.reviewHand} testID="review" tone="plain" onPress={onReview} />}
           <Button label={finishLabel} tone="plain" onPress={onFinish} />
         </View>
       )}

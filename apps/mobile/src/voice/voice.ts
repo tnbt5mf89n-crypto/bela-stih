@@ -33,7 +33,7 @@ export function sniffMime(b: Uint8Array): VoiceMime | null {
  * A browser records Opus in WebM where it can (Chrome, Firefox): that recorder
  * keeps to the bit rate asked for. Chrome's MP4 recorder ignores it (96 kbps,
  * so 15 s came to ~165 KB, over the room's limit, and was dropped). MP4 only
- * where WebM cannot record at all (Safari). Android plays both.
+ * where WebM cannot record at all (Safari before 18.4). Android plays both.
  */
 export function webRecordingMime(isSupported: (type: string) => boolean): string | undefined {
   for (const t of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
@@ -55,7 +55,11 @@ export function recordingOptions(webMime: string | undefined): RecordingOptions 
     sampleRate: 16_000,
     numberOfChannels: 1,
     bitRate: VOICE_BIT_RATE,
-    android: { extension: '.m4a', outputFormat: 'mpeg4', audioEncoder: 'aac', sampleRate: 16_000 },
+    // Levels while recording (the take's loudness header, gainForLoudness).
+    isMeteringEnabled: true,
+    // The phone's communication path: echo cancelled, noise suppressed, gain
+    // controlled - a table's worth of clips, not a field recording (1.6.0).
+    android: { extension: '.m4a', outputFormat: 'mpeg4', audioEncoder: 'aac', sampleRate: 16_000, audioSource: 'voice_communication' },
     // No iOS build ships; the type requires the fields (MPEG4AAC, AudioQuality.LOW),
     // written as values so this module loads no native code under test.
     ios: { extension: '.m4a', outputFormat: 'aac ' as IOSOutputFormat, audioQuality: 32 as AudioQuality },
@@ -71,6 +75,24 @@ export interface HeardClip {
   mime: VoiceMime;
   data: Uint8Array;
   at: number;
+  /** The sender's average level while recording, dBFS (1.6.0); absent from older apps and the web. */
+  loudness?: number;
+}
+
+/** A loudness as it arrives on the wire: a finite dBFS between -60 and 0, or nothing. */
+export function loudnessOf(v: unknown): number | undefined {
+  return typeof v === 'number' && Number.isFinite(v) && v >= -60 && v <= 0 ? v : undefined;
+}
+
+/**
+ * The gain that brings a clip to the table's level: -20 dBFS is the target,
+ * and the correction is clamped to ±9 dB so a whisper is lifted and a shout
+ * held, but nothing is turned into noise. No header, no change.
+ */
+export function gainForLoudness(loudness: number | undefined): number {
+  if (loudness === undefined || !Number.isFinite(loudness)) return 1;
+  const db = Math.max(-9, Math.min(9, -20 - loudness));
+  return Math.pow(10, db / 20);
 }
 
 /** At most this many wait their turn; a flood beyond it is not heard. */
@@ -131,7 +153,8 @@ export const ECHO_WAIT_MS = 8000;
  * A listener's app plays a clip within STALE_MS of its arrival or never
  * (nextClip), so no receipt this long after the echo means nobody heard it.
  */
-export const RECEIPT_WAIT_MS = STALE_MS + 3000;
+// A receipt means heard to the END (1.6.0): a full clip queued behind another can take this long.
+export const RECEIPT_WAIT_MS = STALE_MS + VOICE_MAX_MS + 5000;
 /** A settled word stays this long beside the mic. */
 export const STATUS_SHOW_MS = 4000;
 

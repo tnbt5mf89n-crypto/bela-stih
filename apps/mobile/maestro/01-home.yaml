@@ -1,0 +1,12 @@
+appId: com.slfresh.belastih
+name: The home screen comes up with its three ways to a table
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home-play"
+    timeout: 20000
+- assertVisible:
+    id: "home-offline"
+- assertVisible:
+    id: "home-create"

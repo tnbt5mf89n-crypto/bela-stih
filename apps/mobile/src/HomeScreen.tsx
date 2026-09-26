@@ -159,7 +159,7 @@ export function HomeScreen({
                   </View>
                 </Anchor>
               </PressScale>
-              <PressScale onPress={onOpenSettings} hitSlop={6} accessibilityLabel={ui.settings} style={styles.gear}>
+              <PressScale onPress={onOpenSettings} hitSlop={6} accessibilityLabel={ui.settings} testID="home-settings" style={styles.gear}>
                 <Gear size={22} />
               </PressScale>
             </View>
@@ -177,6 +177,7 @@ export function HomeScreen({
               label={ui.play}
               room={room()}
               onPress={() => go({ mode: 'quick' })}
+              testID="home-play"
             />
             {/* The big word never said it goes online, to strangers: the two
                 tiles under it say what they are, and now so does it. */}
@@ -189,12 +190,14 @@ export function HomeScreen({
                 title={ui.playBots}
                 sub={ui.modeBotsSub}
                 onPress={() => go({ mode: 'offline' })}
+                testID="home-offline"
               />
               <ModeTile
                 icon={<Crown size={22} />}
                 title={ui.privateTable}
                 sub={ui.modePrivateSub}
                 onPress={() => go({ mode: 'create' })}
+                testID="home-create"
               />
             </View>
 
@@ -216,6 +219,7 @@ export function HomeScreen({
                   label={ui.enter}
                   tone={code.trim() ? 'strong' : 'plain'}
                   onPress={() => code.trim() && go({ mode: 'join', code: code.trim() })}
+                  testID="home-join"
                 />
               </View>
             </Panel>
@@ -317,14 +321,16 @@ function ModeTile({
   title,
   sub,
   onPress,
+  testID,
 }: {
   icon: React.ReactNode;
   title: string;
   sub: string;
   onPress: () => void;
+  testID?: string;
 }) {
   return (
-    <PressScale onPress={onPress} style={styles.tile} scaleTo={0.98}>
+    <PressScale onPress={onPress} style={styles.tile} scaleTo={0.98} testID={testID}>
       <View style={styles.tileIcon}>{icon}</View>
       <View style={styles.tileText}>
         {/* Two lines each: side by side on a 360 dp phone the tile's text

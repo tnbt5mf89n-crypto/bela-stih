@@ -1,0 +1,31 @@
+appId: com.slfresh.belastih
+name: Settings open, and the hidden diagnostics replay the golden corpus on Hermes
+# Five taps on the version line open "Dijagnostika"; its button runs the
+# golden corpus (packages/engine/test/golden) on the phone's own JavaScript
+# engine and compares the play hash with the fixture the server's tests use.
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home-play"
+    timeout: 20000
+- tapOn:
+    id: "home-settings"
+- scrollUntilVisible:
+    element:
+      id: "version"
+    direction: DOWN
+    timeout: 20000
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "version"
+- tapOn:
+    id: "diag-golden"
+- extendedWaitUntil:
+    visible:
+      id: "golden-result"
+    timeout: 60000
+- assertVisible:
+    id: "golden-ok"

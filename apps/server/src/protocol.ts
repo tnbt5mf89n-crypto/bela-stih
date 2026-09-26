@@ -47,7 +47,7 @@ export type ClientMessage =
    * Push-to-talk: a recorded clip (VOICE_MIMES, at most VOICE_MAX_MS and
    * VOICE_MAX_BYTES), relayed to the others at the table and never stored.
    */
-  | { type: 'voice'; ms: number; mime: string; data: Uint8Array }
+  | { type: 'voice'; ms: number; mime: string; data: Uint8Array; loudness?: number }
   /**
    * The player switched voice messages off (or on again) in the app's
    * Settings while at the table: clips stop coming to this app, and its own
@@ -272,6 +272,8 @@ export interface VoiceMessage {
   ms: number;
   mime: string;
   data?: Uint8Array;
+  /** The sender's average level while recording, dBFS, -60..0 (1.6.0): the listener's app levels the clip by it. */
+  loudness?: number;
   /** The speaker's echo only: every seat the clip went to (empty: nobody at the table can hear it). */
   to?: Seat[];
   /** The speaker's echo only: those of `to` whose apps cannot confirm (omitted when none). */

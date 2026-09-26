@@ -20,7 +20,7 @@ import { teamOf } from '@belot/engine';
 import { anchorId } from '../anim/FxBus';
 import { COIN_CASCADE_DELAY_MS, coinCascadeCount, coinDingTimers, coinsLandedMs, MATCH_CASCADE_HOLD_MS } from '../anim/lifetimes';
 import { isMatchAward } from '../feedback';
-import { playSfx } from '../audio';
+import { playSfx, setMicDuck } from '../audio';
 import { pattern } from '../haptics';
 import { TableScreen, type SeatMeta } from '../TableScreen';
 import { Button } from '../ui/Button';
@@ -144,6 +144,12 @@ export function OnlineGame({
     ),
   );
   const { finish: finishTake, note: micNote } = mic;
+  // While I speak, nobody else's clip starts and the game's sounds dip (audio.ts).
+  useEffect(() => {
+    playback.hold(mic.phase === 'recording');
+    setMicDuck(mic.phase === 'recording');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hold is stable (useCallback on pump)
+  }, [mic.phase]);
   // Play's terms-before-UGC rule: the rules of conduct are shown, once, before
   // the first voice message ever leaves this device. The press that meets the
   // sheet records nothing; the next one does.

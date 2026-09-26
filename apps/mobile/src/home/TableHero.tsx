@@ -30,6 +30,7 @@ export const TableHero = memo(function TableHero({
   label,
   room,
   onPress,
+  testID,
 }: {
   /** The player's own avatar id. */
   avatar: string;
@@ -38,6 +39,7 @@ export const TableHero = memo(function TableHero({
   label: string;
   room: RoomStyle;
   onPress: () => void;
+  testID?: string;
 }) {
   const [width, setWidth] = useState(0);
   const guests = guestsFor(day, avatar, AVATAR_IDS);
@@ -51,7 +53,7 @@ export const TableHero = memo(function TableHero({
       }}
     >
       {l && (
-        <PressScale onPress={onPress} scaleTo={0.985} style={StyleSheet.absoluteFill}>
+        <PressScale onPress={onPress} scaleTo={0.985} style={StyleSheet.absoluteFill} testID={testID}>
           <FeltArt width={l.width} height={l.height} room={room} grain={false} />
           {/* the two across the table */}
           <View style={[styles.guest, { top: l.guestTop, left: l.guestInset }]}>

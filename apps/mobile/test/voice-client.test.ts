@@ -150,7 +150,8 @@ describe('the app around it', () => {
 
   it("plays each clip at the game's volume, lets it go when it ends, the game sounds dipped meanwhile", () => {
     const p = src('voice/useVoicePlayback.ts');
-    expect(p).toMatch(/playback = playClip\(src\.uri, masterVolume\(\), stop, \(\) => onPlayedRef\.current\?\.\(clip\.id\)\);/);
+    // 1.6.0: at the voice volume, levelled by the sender's header; the receipt goes when the clip has ENDED.
+    expect(p).toMatch(/playback = playClip\(src\.uri, masterVolume\(\) \* voiceVolume\(\) \* gainForLoudness\(clip\.loudness\), \(\) => \{\s*onPlayedRef\.current\?\.\(clip\.id\);\s*stop\(\);\s*\}\);/);
     expect(p).toMatch(/playback\?\.stop\(\);\s*src\?\.release\(\);/);
     // What a killed app left in the cache goes as the screen opens, before any clip can come.
     expect(p).toMatch(/useEffect\(\(\) => sweepVoiceFiles\(\), \[\]\);/);
@@ -158,7 +159,8 @@ describe('the app around it', () => {
     expect(p).toMatch(/setSfxDuck\(1\);/);
     // A clip that never says it is done still lets the next one go.
     expect(p).toMatch(/timer = setTimeout\(stop, clip\.ms \+ FINISH_SLACK_MS\);/);
-    expect(src('audio.ts')).toMatch(/gain \* master \* duck \* \(opts\.gain \?\? 1\)/);
+    // 1.6.0: the lower of two dips - a clip playing, or this player's own microphone open.
+    expect(src('audio.ts')).toMatch(/gain \* master \* Math\.min\(clipDuck, micDuck\) \* \(opts\.gain \?\? 1\)/);
   });
 
   it("keeps the recorder with the online screen, so the table's rows cannot take a take with them", () => {
@@ -180,7 +182,7 @@ describe('the app around it', () => {
   it('never leaves a microphone open or a take on the phone', () => {
     const r = src('voice/useVoiceRecorder.ts');
     // Opened but would not record: closed again.
-    expect(r).toMatch(/if \(prepared\) \{\s*try \{\s*await recorder\.stop\(\);/);
+    expect(r).toMatch(/if \(prepared\) \{\s*try \{\s*(?:stopMetering\(\);\s*)?await recorder\.stop\(\);/);
     // The screen closing mid-take: the file by the name kept at the start, whatever the recorder says.
     expect(r).toMatch(/takeUri\.current = Platform\.OS === 'web' \? null : recorder\.uri;/);
     expect(r).toMatch(/void recorder\.stop\(\)\.catch\(\(\) => \{\}\);[\s\S]{0,120}dropTake\(takeUri\.current\);/);

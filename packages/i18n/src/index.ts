@@ -349,6 +349,13 @@ export interface UiStrings {
   /** A bigger fan and the plain deck (1.6.0). */
   bigCards: string;
   bigCardsHint: string;
+  /** "Glas": the clips' own volume (1.6.0). */
+  voiceVolumeLabel: string;
+  /** Dijagnostika (1.6.0): five taps on the version line; the golden corpus on this phone. */
+  diagTitle: string;
+  diagGolden: string;
+  diagOk: (ms: number) => string;
+  diagDiff: (hash: string) => string;
   volumeLabel: string;
   volumeQuiet: string;
   volumeMedium: string;
@@ -1142,6 +1149,11 @@ const hr: Strings = {
     hapticStrengthFull: 'Puna',
     bigCards: 'Velike karte',
     bigCardsHint: 'Veća lepeza i jednostavne karte, za oči koje to žele.',
+    voiceVolumeLabel: 'Glasnoća glasa',
+    diagTitle: 'Dijagnostika',
+    diagGolden: 'Zlatni korpus: usporedi pravila s poslužiteljem',
+    diagOk: (ms) => `Pravila su ista kao na poslužitelju (${ms} ms).`,
+    diagDiff: (hash) => `RAZLIKA: ova verzija igra drukčije (${hash}).`,
     volumeLabel: 'Glasnoća',
     volumeQuiet: 'Tiho',
     volumeMedium: 'Srednje',
@@ -1728,6 +1740,11 @@ const srCyrl: Strings = {
     hapticStrengthFull: 'Пуна',
     bigCards: 'Велике карте',
     bigCardsHint: 'Већа лепеза и једноставне карте, за очи које то желе.',
+    voiceVolumeLabel: 'Јачина гласа',
+    diagTitle: 'Дијагностика',
+    diagGolden: 'Златни корпус: упореди правила са сервером',
+    diagOk: (ms) => `Правила су иста као на серверу (${ms} мс).`,
+    diagDiff: (hash) => `РАЗЛИКА: ова верзија игра другачије (${hash}).`,
     volumeLabel: 'Јачина звука',
     volumeQuiet: 'Тихо',
     volumeMedium: 'Средње',
@@ -2311,6 +2328,11 @@ const en: Strings = {
     hapticStrengthFull: 'Full',
     bigCards: 'Big cards',
     bigCardsHint: 'A bigger fan and the plain deck, for eyes that want it.',
+    voiceVolumeLabel: 'Voice volume',
+    diagTitle: 'Diagnostics',
+    diagGolden: 'Golden corpus: compare the rules with the server',
+    diagOk: (ms) => `The rules match the server's (${ms} ms).`,
+    diagDiff: (hash) => `DIFFERENCE: this version plays differently (${hash}).`,
     volumeLabel: 'Volume',
     volumeQuiet: 'Quiet',
     volumeMedium: 'Medium',

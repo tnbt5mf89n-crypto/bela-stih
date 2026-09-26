@@ -98,7 +98,7 @@ describe('the table while it stands still', () => {
 
   it('counts the next deal down online, and leaves offline exactly as it was', () => {
     const t = src('src/TableScreen.tsx');
-    expect(t).toMatch(/\{nextDeal \? \(\s*<NextDealButton lang=\{lang\} next=\{nextDeal\} onNext=\{onNext\} \/>\s*\) : \(\s*<Button label=\{lang\.s\.nextDeal\} tone="strong" onPress=\{onNext\} \/>/);
+    expect(t).toMatch(/\{nextDeal \? \(\s*<NextDealButton lang=\{lang\} next=\{nextDeal\} onNext=\{onNext\} \/>\s*\) : \(\s*<Button label=\{lang\.s\.nextDeal\}(?: testID="next-deal")? tone="strong" onPress=\{onNext\} \/>/);
     // Offline passes no nextDeal at all.
     expect(src('src/OfflineGame.tsx')).not.toMatch(/nextDeal=/);
   });

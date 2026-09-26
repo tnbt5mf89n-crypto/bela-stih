@@ -106,6 +106,8 @@ export interface Settings {
   hapticStrength: HapticStrength;
   /** "Velike karte": a bigger fan and the plain deck, for eyes that want it. */
   bigCards: boolean;
+  /** "Glas": the clips' own level, 0-1, one of VOLUME_OPTIONS. */
+  voiceVolume: number;
 }
 
 export type VoiceMode = 'hold' | 'tap';
@@ -127,6 +129,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tempo: 'normal',
   hapticStrength: 'full',
   bigCards: false,
+  voiceVolume: 0.7,
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -215,6 +218,10 @@ export function loadSettings(): Settings {
   const volume = (VOLUME_OPTIONS as readonly number[]).reduce((best, v) =>
     Math.abs(v - s.volume) < Math.abs(best - s.volume) ? v : best,
   );
+  const voiceVolume = (VOLUME_OPTIONS as readonly number[]).reduce((best, v) =>
+    Math.abs(v - s.voiceVolume) < Math.abs(best - s.voiceVolume) ? v : best,
+  );
+  s = voiceVolume === s.voiceVolume ? s : { ...s, voiceVolume };
   return volume === s.volume ? s : { ...s, volume };
 }
 

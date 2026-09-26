@@ -20,12 +20,15 @@ export function Button({
   style,
   icon,
   accessibilityLabel,
+  testID,
   disabled = false,
 }: {
   label: string;
   onPress: () => void;
   /** What a screen reader says when the visible label is abbreviated (the rail's suit buttons). */
   accessibilityLabel?: string;
+  /** For the device flows (apps/mobile/maestro). */
+  testID?: string;
   tone?: 'plain' | 'strong' | 'bela';
   /** Landscape rail size: caption type, tighter padding, a label wraps at most once. */
   compact?: boolean;
@@ -51,6 +54,7 @@ export function Button({
       sound={sound}
       pressSound={sound === null ? null : 'press'}
       accessibilityLabel={accessibilityLabel ?? label}
+      testID={testID}
       accessibilityRole="button"
       accessibilityState={disabled ? { disabled: true } : undefined}
       disabled={disabled}

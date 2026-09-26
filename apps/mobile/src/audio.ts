@@ -102,9 +102,23 @@ export function masterVolume(): number {
 }
 
 /** The game's sounds step back while a voice message plays (voice/useVoicePlayback.ts); 1 is not at all. */
-let duck = 1;
+// Two reasons the game's sounds dip: somebody's clip is playing (clipDuck), or
+// this player's own microphone is open (micDuck). The lower one applies.
+let clipDuck = 1;
+let micDuck = 1;
 export function setSfxDuck(level: number): void {
-  duck = Math.max(0, Math.min(1, level));
+  clipDuck = Math.max(0, Math.min(1, level));
+}
+export function setMicDuck(recording: boolean): void {
+  micDuck = recording ? 0.4 : 1;
+}
+/** Settings' "Glas": the clips' own level, over the master volume. */
+let voiceLevel = 0.7;
+export function setVoiceVolume(v: number): void {
+  voiceLevel = Math.max(0, Math.min(1, v));
+}
+export function voiceVolume(): number {
+  return voiceLevel;
 }
 
 /**
@@ -179,7 +193,7 @@ export function playSfx(name: Sfx, opts: PlayOptions = {}): void {
   void configureOnce();
   try {
     const { gain, varied, rare } = manifest[name];
-    const volume = Math.max(0, Math.min(1, gain * master * duck * (opts.gain ?? 1)));
+    const volume = Math.max(0, Math.min(1, gain * master * Math.min(clipDuck, micDuck) * (opts.gain ?? 1)));
     const rate = (varied ? 0.92 + Math.random() * 0.16 : 1) * (opts.rate ?? 1);
     if (ONE_SHOTS && rare) {
       playOnce(() => makePlayer(name), volume, rate);

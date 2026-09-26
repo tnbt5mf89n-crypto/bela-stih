@@ -1,0 +1,41 @@
+appId: com.slfresh.belastih
+name: An offline deal against three bots, played to its result sheet
+# Every fan card carries testID card-<id>; a tap on an illegal card shakes and
+# does nothing, a tap on a legal one arms or plays it (confirmPlay). Two taps
+# on the first card, over and over, get through any deal; the bid prompts are
+# answered with their first button (action-0: a pass, or the forced call).
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home-offline"
+    timeout: 20000
+- tapOn:
+    id: "home-offline"
+- extendedWaitUntil:
+    visible:
+      id: "card-.*"
+    timeout: 20000
+- repeat:
+    times: 90
+    commands:
+      - tapOn:
+          id: "action-0"
+          optional: true
+      - tapOn:
+          id: "card-.*"
+          index: 0
+          optional: true
+      - tapOn:
+          id: "card-.*"
+          index: 0
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "next-deal"
+    timeout: 60000
+- assertVisible:
+    id: "review"
+- tapOn:
+    id: "review"
+- assertVisible: "1\\. .*"

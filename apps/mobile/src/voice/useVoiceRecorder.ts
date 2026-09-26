@@ -17,6 +17,14 @@ export interface Take {
   mime: VoiceMime;
   ms: number;
   data: Uint8Array;
+  /** The average level while recording, dBFS; undefined where the recorder gives none (the web). */
+  loudness?: number;
+}
+
+/** The mean of the levels sampled, or nothing when there were none. */
+function meanDb(xs: readonly number[]): number | undefined {
+  if (xs.length === 0) return undefined;
+  return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
 /** How a press ended: sent, too short to mean anything, slid off, the mic refused, or the phone failed us. */
@@ -64,6 +72,13 @@ export function useVoiceRecorder(onTake: (take: Take) => void): VoiceMic {
   const startedRef = useRef(0);
   /** The file the take now recording goes to (a phone knows it from the start; a browser only at the end). */
   const takeUri = useRef<string | null>(null);
+  // Levels sampled four times a second while recording (recordingOptions meters).
+  const meters = useRef<number[]>([]);
+  const meter = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopMetering = () => {
+    if (meter.current) clearInterval(meter.current);
+    meter.current = null;
+  };
   const limit = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onTakeRef = useRef(onTake);
   onTakeRef.current = onTake;
@@ -88,6 +103,7 @@ export function useVoiceRecorder(onTake: (take: Take) => void): VoiceMic {
       const known = takeUri.current;
       takeUri.current = null;
       try {
+        stopMetering();
         await recorder.stop();
       } catch {
         dropTake(known);
@@ -107,7 +123,7 @@ export function useVoiceRecorder(onTake: (take: Take) => void): VoiceMic {
           end('failed');
           return;
         }
-        onTakeRef.current({ mime, ms, data });
+        onTakeRef.current({ mime, ms, data, loudness: meanDb(meters.current) });
         end('sent');
       } catch {
         end('failed');
@@ -136,6 +152,16 @@ export function useVoiceRecorder(onTake: (take: Take) => void): VoiceMic {
       // A phone has named the file already; a browser's is the one before (or none).
       takeUri.current = Platform.OS === 'web' ? null : recorder.uri;
       recorder.record();
+      meters.current = [];
+      stopMetering();
+      meter.current = setInterval(() => {
+        try {
+          const level = recorder.getStatus().metering;
+          if (typeof level === 'number' && Number.isFinite(level)) meters.current.push(level);
+        } catch {
+          // a recorder already let go
+        }
+      }, 250);
       startedRef.current = Date.now();
       setStartedAt(startedRef.current);
       to('recording');
@@ -148,7 +174,8 @@ export function useVoiceRecorder(onTake: (take: Take) => void): VoiceMic {
       // Opened but would not record: close it again, so no microphone stays live.
       if (prepared) {
         try {
-          await recorder.stop();
+          stopMetering();
+        await recorder.stop();
         } catch {
           // Never started: nothing to stop.
         }

@@ -7,7 +7,7 @@ import { Table } from '@belot/table';
 import { EMOTE_GAP_MS, EMOTE_IDS, GIFT_GAP_MS, GIFT_IDS, MATCH_TARGETS, MIN_PROTO, MSG, NEXT_DEAL_MS, PAUSE_MAX_MS, TURN_CHOICES, UPDATE_APP_CODE, WAIT_FOR_DROPPED_MS, type ClientMessage, type HoldInfo, type EmoteMessage, type GiftMessage, type JoinGifts, type JoinProto, type JoinVoice, type RoomMessage, type SeatInfo, type VoiceHeardMessage, type VoiceMessage, isPlayMode, modeFromLegacy, type PlayMode, BANNED_CODE, BLOCKED_CODE, MAINTENANCE_CODE, type JoinIdentity } from './protocol';
 import { config } from './config';
 import { blocksEither, cleanBlockList, cleanInstallId, type Identity } from './identity';
-import { checkClip, VoiceLedger, VoiceLimiter } from './voice';
+import { checkClip, VoiceLedger, VoiceLimiter, loudnessOf } from './voice';
 import { cleanName } from './names';
 import { tableCode } from './codes';
 
@@ -791,14 +791,15 @@ export class BelaRoom extends Room {
       // on, from an app that records it, and only what checkClip accepts -
       // anything else is dropped without a word, and costs nothing.
       if (!this.voiceOn || !config().voice || !this.occupants[seat]!.voice) return;
-      const m = packet.message as { mime?: unknown; data?: unknown; ms?: unknown } | undefined;
+      const m = packet.message as { mime?: unknown; data?: unknown; ms?: unknown; loudness?: unknown } | undefined;
       const clip = checkClip(m?.mime, m?.data, m?.ms);
       if (clip === null) return;
+      const loudness = loudnessOf(m?.loudness);
       let limiter = this.voiceLimits.get(client.sessionId);
       if (!limiter) this.voiceLimits.set(client.sessionId, (limiter = new VoiceLimiter()));
       if (!limiter.take(Date.now(), clip.ms)) return;
       const id = ++this.voiceSeq;
-      const out: VoiceMessage = { from: seat, id, ms: clip.ms, mime: clip.mime, data: clip.data };
+      const out: VoiceMessage = { from: seat, id, ms: clip.ms, mime: clip.mime, data: clip.data, ...(loudness === undefined ? {} : { loudness }) };
       const to: Seat[] = [];
       const noReceipt: Seat[] = [];
       const sessions: string[] = [];

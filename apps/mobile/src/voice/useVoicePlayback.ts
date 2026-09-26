@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Seat } from '@belot/engine';
-import { masterVolume, setSfxDuck } from '../audio';
+import { masterVolume, setSfxDuck, voiceVolume } from '../audio';
 import { clipSource, sweepVoiceFiles } from './clipFiles';
 import { playClip, type ClipPlayback } from './clipPlayer';
-import { enqueue, nextClip, type HeardClip } from './voice';
+import { enqueue, gainForLoudness, nextClip, type HeardClip } from './voice';
 
 /** How far the game's own sounds dip while somebody speaks. */
 const SFX_UNDER_VOICE = 0.4;
@@ -28,6 +28,8 @@ export function useVoicePlayback(
   const onPlayedRef = useRef(onPlayed);
   onPlayedRef.current = onPlayed;
   const queue = useRef<HeardClip[]>([]);
+  // Held while this player records: nothing new starts under their own voice.
+  const held = useRef(false);
   const current = useRef<{ from: Seat; stop: () => void } | null>(null);
   const blockedRef = useRef(blocked);
   blockedRef.current = blocked;
@@ -35,7 +37,7 @@ export function useVoicePlayback(
   enabledRef.current = enabled;
 
   const pump = useCallback(() => {
-    if (current.current) return;
+    if (current.current || held.current) return;
     const { clip, rest } = nextClip(queue.current, Date.now(), blockedRef.current);
     queue.current = rest;
     if (!clip) return;
@@ -57,7 +59,12 @@ export function useVoicePlayback(
     current.current = { from: clip.from, stop };
     try {
       src = clipSource(clip.data, clip.mime, clip.id);
-      playback = playClip(src.uri, masterVolume(), stop, () => onPlayedRef.current?.(clip.id));
+      // The receipt goes when the clip has been heard to the END (1.6.0), at the
+      // player's voice volume, corrected by the sender's loudness header.
+      playback = playClip(src.uri, masterVolume() * voiceVolume() * gainForLoudness(clip.loudness), () => {
+        onPlayedRef.current?.(clip.id);
+        stop();
+      });
     } catch {
       stop();
       return;
@@ -98,5 +105,14 @@ export function useVoicePlayback(
     [],
   );
 
-  return { hear, speaking };
+  /** My own microphone is open: hold the queue; let it go (and pump) when it closes. */
+  const hold = useCallback(
+    (on: boolean) => {
+      held.current = on;
+      if (!on) pump();
+    },
+    [pump],
+  );
+
+  return { hear, speaking, hold };
 }

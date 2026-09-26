@@ -23,7 +23,7 @@ import {
   saveSettings,
   type Settings,
 } from './src/storage';
-import { preloadSfx, setMasterVolume, setSoundEnabled } from './src/audio';
+import { preloadSfx, setMasterVolume, setSoundEnabled, setVoiceVolume } from './src/audio';
 import { AudioUnlockChip } from './src/ui/AudioUnlockChip';
 import { runBackGuard } from './src/ui/backGuard';
 import { useWebBack } from './src/ui/webBack';
@@ -107,7 +107,8 @@ export default function App() {
     setHapticsStrength(settings.hapticStrength);
     setAndroidHaptics(Platform.OS === 'android');
     setMasterVolume(settings.volume);
-  }, [settings.sound, settings.haptics, settings.hapticStrength, settings.volume]);
+    setVoiceVolume(settings.voiceVolume);
+  }, [settings.sound, settings.haptics, settings.hapticStrength, settings.volume, settings.voiceVolume]);
 
   const updateProfile = useCallback((p: PlayerProfile) => {
     saveProfile(p);
