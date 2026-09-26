@@ -12,6 +12,8 @@ import type {
   Suit,
   TeamId,
   TrickPlay,
+  BidRecord,
+  TrickRecord
 } from '@belot/shared-types';
 import { DEFAULT_CONFIG, SEATS, SUITS } from '@belot/shared-types';
 import {
@@ -67,6 +69,8 @@ export interface GameState {
   // bidding
   bidTurn: Seat;
   passCount: number;
+  /** Every answer so far this deal, in order - public, for PublicView.history. */
+  bidLog: BidRecord[];
 
   // doubling
   callerSeat: Seat | null;
@@ -136,6 +140,7 @@ export function createMatch(opts: CreateMatchOptions = {}): GameState {
     context: { contractType: 'SUIT', trumpSuit: null },
     bidTurn: 0,
     passCount: 0,
+    bidLog: [],
     callerSeat: null,
     multiplier: 1,
     doubleStage: null,
@@ -210,6 +215,7 @@ export function startDeal(prev: GameState): GameState {
   s.turn = null;
   s.currentTrick = [];
   s.completedTricks = [];
+  s.bidLog = [];
   s.lastDealResult = null;
 
   s.phase = 'BID';
@@ -339,6 +345,7 @@ function applyBidPass(s: GameState, seat: Seat): GameState {
   const dealerForced = s.config.dealerMustCall && seat === s.dealer && s.passCount === 3;
   if (dealerForced) throw new Error('dealer is forced to call (muss)');
   s.passCount += 1;
+  s.bidLog.push({ seat, suit: null });
   s.bidTurn = ((seat + 1) % 4) as Seat;
   if (s.passCount === 4) {
     // Only reachable when dealerMustCall is off. Nobody wants it: the deal is
@@ -359,6 +366,7 @@ function applyBidCall(s: GameState, seat: Seat, suit: Suit): GameState {
   // vanish from the deal — or park an arbitrary object in the state that
   // nothing downstream can clone or serialise.
   if (!SUITS.includes(suit)) throw new Error(`unknown suit ${String(suit)}`);
+  s.bidLog.push({ seat, suit });
   s.context = { contractType: 'SUIT', trumpSuit: suit };
   s.callerSeat = seat;
   s.multiplier = 1;
@@ -815,8 +823,29 @@ export function publicView(s: GameState, seat: Seat): PublicView {
     // Public by construction: won tricks, heard announcements and a called bela
     // are things everyone at the table already knows.
     dealProgress: s.phase === 'PLAY' && s.callerSeat !== null ? progressOf(s) : null,
+    // The deal so far, with seats: the bids as answered, the finished tricks.
+    history: { bids: s.bidLog.slice(), tricks: trickRecords(s) },
     legalActions: toAct === seat ? legalActions(s) : [],
   };
+}
+
+/**
+ * The finished tricks with the seat behind every card. Nothing is stored for
+ * it: the first leader of a deal is public (the seat after the dealer, who
+ * also bid first), every later trick is led by the previous winner, and a
+ * trick's cards are in play order from its leader.
+ */
+function trickRecords(s: GameState): TrickRecord[] {
+  // The seat after the dealer opened the bidding and leads the first trick. Read
+  // off the bid log rather than the dealer: the dealer has already moved on by
+  // the time a scored deal is looked at.
+  let leader: Seat = s.bidLog[0]?.seat ?? dealFirstLeader(s);
+  return s.completedTricks.map((t) => {
+    const plays = t.cards.map((card, i) => ({ seat: ((leader + i) % 4) as Seat, card }));
+    const rec: TrickRecord = { leader, winner: t.winnerSeat, plays };
+    leader = t.winnerSeat;
+    return rec;
+  });
 }
 
 /** The live running score, derived from what the whole table can already see. */

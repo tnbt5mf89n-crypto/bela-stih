@@ -151,7 +151,7 @@ describe('joining by code and being away', () => {
     // Any word from a waited-for player means back, in case "back" was lost -
     // except the app's own Settings switch, which is not the player at the table.
     expect(room).toMatch(
-      /if \(packet\.type !== 'away' && packet\.type !== 'hears' && packet\.type !== 'heard' && this\.waiting\.has\(seat\) && this\.occupants\[seat\]!\.connected\)/,
+      /if \(packet\.type !== 'away' && packet\.type !== 'hears' && packet\.type !== 'voiceIn' && packet\.type !== 'heard' && this\.waiting\.has\(seat\) && this\.occupants\[seat\]!\.connected\)/,
     );
   });
 });

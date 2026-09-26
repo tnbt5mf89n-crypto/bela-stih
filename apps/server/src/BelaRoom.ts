@@ -4,7 +4,9 @@ import type { Action, Seat } from '@belot/engine';
 import { DEFAULT_CONFIG, HARD_CONFIG_OVERRIDES, RANKS, SEATS, SUITS, type EngineConfig } from '@belot/engine';
 import type { Card, Rank, Rng, Suit } from '@belot/engine';
 import { Table } from '@belot/table';
-import { EMOTE_GAP_MS, EMOTE_IDS, GIFT_GAP_MS, GIFT_IDS, MATCH_TARGETS, MIN_PROTO, MSG, NEXT_DEAL_MS, PAUSE_MAX_MS, TURN_CHOICES, UPDATE_APP_CODE, WAIT_FOR_DROPPED_MS, type ClientMessage, type HoldInfo, type EmoteMessage, type GiftMessage, type JoinGifts, type JoinProto, type JoinVoice, type RoomMessage, type SeatInfo, type VoiceHeardMessage, type VoiceMessage, isPlayMode, modeFromLegacy, type PlayMode } from './protocol';
+import { EMOTE_GAP_MS, EMOTE_IDS, GIFT_GAP_MS, GIFT_IDS, MATCH_TARGETS, MIN_PROTO, MSG, NEXT_DEAL_MS, PAUSE_MAX_MS, TURN_CHOICES, UPDATE_APP_CODE, WAIT_FOR_DROPPED_MS, type ClientMessage, type HoldInfo, type EmoteMessage, type GiftMessage, type JoinGifts, type JoinProto, type JoinVoice, type RoomMessage, type SeatInfo, type VoiceHeardMessage, type VoiceMessage, isPlayMode, modeFromLegacy, type PlayMode, BANNED_CODE, BLOCKED_CODE, MAINTENANCE_CODE, type JoinIdentity } from './protocol';
+import { config } from './config';
+import { blocksEither, cleanBlockList, cleanInstallId, type Identity } from './identity';
 import { checkClip, VoiceLedger, VoiceLimiter } from './voice';
 import { cleanName } from './names';
 import { tableCode } from './codes';
@@ -144,10 +146,15 @@ interface Occupant {
   receipts: boolean;
   /** The wire generation the app joined with (protocol.ts PROTO); 0 for an app from before the handshake. */
   proto: number;
+  /** The app's install ID and block list (identity.ts): in memory, with the seat, and nowhere else. */
+  installId: string;
+  blocked: ReadonlySet<string>;
+  /** At a public table: this player asked for strangers' clips here ('voiceIn'). */
+  voiceIn: boolean;
 }
 
 /** A chair nobody sits in. */
-const vacant = (): Occupant => ({ sessionId: null, name: '', avatar: '', connected: false, origin: '', gifts: false, voice: false, speaksVoice: false, receipts: false, proto: 0 });
+const vacant = (): Occupant => ({ sessionId: null, name: '', avatar: '', connected: false, origin: '', gifts: false, voice: false, speaksVoice: false, receipts: false, proto: 0, installId: '', blocked: new Set(), voiceIn: false });
 
 /** Refused because a seat at THIS table is already held from the same place. */
 export const SAME_ORIGIN_CODE = 4300;
@@ -234,6 +241,8 @@ export class BelaRoom extends Room {
   private lastEmoteAt = new Map<string, number>();
   private lastSitAt = new Map<string, number>();
   private lastVoteAt = new Map<string, number>();
+  /** The last 'voiceIn' from each connection: republishes, so it gets the vote's gap. */
+  private lastVoiceInAt = new Map<string, number>();
   private lastGiftAt = new Map<string, number>();
   private voiceLimits = new Map<string, VoiceLimiter>();
   /** Numbers each relayed clip, so a client can tell its echo from another clip. */
@@ -339,10 +348,17 @@ export class BelaRoom extends Room {
    * Private tables are exempt: you get in by knowing the code, and sharing it
    * with somebody is the entire point.
    */
-  override onAuth(_client: Client, options: unknown, context: AuthContext): { origin: string } {
-    // An app too old for this wire is refused at the door, before it takes a
-    // seat (protocol.ts: the generation, and why MIN_PROTO is 0 for now).
-    if (protoOf(options) < MIN_PROTO) throw new ServerError(UPDATE_APP_CODE, 'update the app');
+  override onAuth(_client: Client, options: unknown, context: AuthContext): { origin: string } & Identity {
+    const cfg = config();
+    // The door, in order. Closed for a moment (config.json): nobody new sits down.
+    if (cfg.maintenance) throw new ServerError(MAINTENANCE_CODE, 'closed for a moment');
+    // An app too old for this wire is refused before it takes a seat
+    // (protocol.ts: the generation; the config can raise the floor without a deploy).
+    if (protoOf(options) < Math.max(MIN_PROTO, cfg.minProto)) throw new ServerError(UPDATE_APP_CODE, 'update the app');
+    const id = options as JoinIdentity | undefined;
+    const installId = cleanInstallId(id?.installId);
+    if (installId !== '' && cfg.banned.has(installId)) throw new ServerError(BANNED_CODE, 'banned');
+    const blocked = cleanBlockList(id?.blocked);
     const origin = originOf(context);
     const clash =
       this.isPublic &&
@@ -350,7 +366,13 @@ export class BelaRoom extends Room {
       origin !== '' &&
       this.occupants.some((o) => o.sessionId !== null && o.connected && o.origin === origin);
     if (clash) throw new ServerError(SAME_ORIGIN_CODE, 'seat already held from here');
-    return { origin };
+    // A public table never seats two people who have blocked each other, either
+    // way: quick play must not re-match them. A held seat is still that person.
+    if (this.isPublic) {
+      const me: Identity = { installId, blocked };
+      if (this.occupants.some((o) => o.sessionId !== null && blocksEither(me, o))) throw new ServerError(BLOCKED_CODE, 'blocked');
+    }
+    return { origin, installId, blocked };
   }
 
   override onJoin(client: Client, options: { name?: string; avatar?: string } & JoinGifts & JoinVoice = {}): void {
@@ -359,8 +381,12 @@ export class BelaRoom extends Room {
       client.leave(4000, 'table full');
       return;
     }
+    const auth = client.auth as ({ origin?: string } & Partial<Identity>) | undefined;
     this.occupants[seat] = {
-      origin: (client.auth as { origin?: string } | undefined)?.origin ?? '',
+      origin: auth?.origin ?? '',
+      installId: auth?.installId ?? '',
+      blocked: auth?.blocked ?? new Set(),
+      voiceIn: false,
       sessionId: client.sessionId,
       // Just what they gave: seatInfo names an empty one by the chair it is in
       // at the time, so a move in the lobby cannot carry the old chair's number.
@@ -564,7 +590,7 @@ export class BelaRoom extends Room {
     // left waiting on someone who is playing would refuse their every move.
     // (Not a Settings switch flipped on the way, nor a clip's receipt: that is
     // the app, not the player at the table.)
-    if (packet.type !== 'away' && packet.type !== 'hears' && packet.type !== 'heard' && this.waiting.has(seat) && this.occupants[seat]!.connected) {
+    if (packet.type !== 'away' && packet.type !== 'hears' && packet.type !== 'voiceIn' && packet.type !== 'heard' && this.waiting.has(seat) && this.occupants[seat]!.connected) {
       this.waiting.delete(seat);
       this.holdChanged();
       if (packet.type === 'back') return;
@@ -748,8 +774,14 @@ export class BelaRoom extends Room {
       const now = Date.now();
       if (now - (this.lastEmoteAt.get(client.sessionId) ?? 0) < EMOTE_GAP_MS) return;
       this.lastEmoteAt.set(client.sessionId, now);
+      if (!config().emotes) return;
       const msg: EmoteMessage = { seat, id };
-      this.broadcast(MSG.emote, msg);
+      // To everyone the sender can reach (identity.ts), and to the sender.
+      for (const other of this.clients) {
+        const s = this.seatOf(other.sessionId);
+        if (s !== null && s !== seat && !this.reaches(seat, s)) continue;
+        other.send(MSG.emote, msg);
+      }
       return;
     }
 
@@ -758,7 +790,7 @@ export class BelaRoom extends Room {
       // clips, and dropped: never stored, never logged. Only where voice is
       // on, from an app that records it, and only what checkClip accepts -
       // anything else is dropped without a word, and costs nothing.
-      if (!this.voiceOn || !this.occupants[seat]!.voice) return;
+      if (!this.voiceOn || !config().voice || !this.occupants[seat]!.voice) return;
       const m = packet.message as { mime?: unknown; data?: unknown; ms?: unknown } | undefined;
       const clip = checkClip(m?.mime, m?.data, m?.ms);
       if (clip === null) return;
@@ -772,7 +804,7 @@ export class BelaRoom extends Room {
       const sessions: string[] = [];
       for (const other of this.clients) {
         const s = this.seatOf(other.sessionId);
-        if (s === null || s === seat || !this.hearsVoice(s)) continue;
+        if (s === null || s === seat || !this.hearsVoice(s) || !this.reaches(seat, s)) continue;
         other.send(MSG.voice, out);
         to.push(s);
         sessions.push(other.sessionId);
@@ -800,6 +832,23 @@ export class BelaRoom extends Room {
       return;
     }
 
+    if (packet.type === 'voiceIn') {
+      // At a public table strangers' clips reach only the seats that asked for
+      // them here. Republished (the speaker's app shows who hears), so it gets
+      // the same gap a vote has.
+      const o = this.occupants[seat]!;
+      const on = (packet.message as { on?: unknown } | undefined)?.on;
+      if (typeof on !== 'boolean') return;
+      if (on && !o.speaksVoice) return;
+      const at = Date.now();
+      if (at - (this.lastVoiceInAt.get(client.sessionId) ?? 0) < SIT_GAP_MS) return;
+      this.lastVoiceInAt.set(client.sessionId, at);
+      if (o.voiceIn === on) return;
+      o.voiceIn = on;
+      this.publish();
+      return;
+    }
+
     if (packet.type === 'hears') {
       // Only an app that joined speaking voice may say it hears again: an old
       // one could not play what it would be sent. Nothing is published - no
@@ -815,7 +864,7 @@ export class BelaRoom extends Room {
     if (packet.type === 'gift') {
       // Only at a table that is playing: the lobby draws no pucks to land on,
       // and its seats still change hands.
-      if (!this.started) return;
+      if (!this.started || !config().gifts) return;
       const m = packet.message as { id?: unknown; to?: unknown } | undefined;
       const id = m?.id;
       if (typeof id !== 'string' || !GIFT_IDS.includes(id)) return;
@@ -832,7 +881,7 @@ export class BelaRoom extends Room {
       // Nobody is sent a gift their app cannot draw (an older app): the
       // sender's device pays for exactly the seats in the echo. With nobody
       // left it is dropped, and does not count as a send.
-      to = to.filter((t) => this.seesGifts(t));
+      to = to.filter((t) => this.seesGifts(t) && this.reaches(seat, t));
       if (to.length === 0) return;
       const now = Date.now();
       if (now - (this.lastGiftAt.get(client.sessionId) ?? 0) < GIFT_GAP_MS) return;
@@ -1070,10 +1119,24 @@ export class BelaRoom extends Room {
 
   // --- publishing ----------------------------------------------------------
 
-  /** A seat a clip goes to: a person on the line whose app plays voice clips. */
+  /**
+   * A seat a clip goes to: a person on the line whose app plays voice clips -
+   * and, at a public table, who asked for strangers' clips here ('voiceIn'),
+   * while the config allows them at all.
+   */
   private hearsVoice(seat: Seat): boolean {
     const o = this.occupants[seat]!;
-    return o.sessionId !== null && o.connected && o.voice;
+    return o.sessionId !== null && o.connected && o.voice && (!this.isPublic || (o.voiceIn && config().strangerClips));
+  }
+
+  /** Nothing a player sends reaches a seat across a block, in either direction (identity.ts). */
+  private reaches(from: Seat, to: Seat): boolean {
+    return !blocksEither(this.occupants[from]!, this.occupants[to]!);
+  }
+
+  /** Voice at this table right now: the host's switch, the config's, and (public) the stranger switch. */
+  private voiceLive(): boolean {
+    return this.voiceOn && config().voice && (!this.isPublic || config().strangerClips);
   }
 
   /** A connection gone for good: its rate limits go with it (they were never pruned). */
@@ -1084,6 +1147,7 @@ export class BelaRoom extends Room {
     this.lastVoteAt.delete(sessionId);
     this.lastGiftAt.delete(sessionId);
     this.voiceLimits.delete(sessionId);
+    this.lastVoiceInAt.delete(sessionId);
   }
 
   /** A seat a gift can reach: a person whose app draws gifts, or no person at all. */
@@ -1101,7 +1165,8 @@ export class BelaRoom extends Room {
       bot: !this.table.humanSeats.has(i as Seat),
       ...(this.gifts[i] ? { gift: this.gifts[i]! } : {}),
       ...(this.seesGifts(i as Seat) ? { seesGifts: true as const } : {}),
-      ...(o.sessionId !== null && o.voice ? { hearsVoice: true as const } : {}),
+      // Whom a clip reaches: at a public table only a seat that opted in, while strangers' clips are allowed at all.
+      ...(o.sessionId !== null && o.voice && (!this.isPublic || (o.voiceIn && config().strangerClips)) ? { hearsVoice: true as const } : {}),
     }));
   }
 
@@ -1134,7 +1199,8 @@ export class BelaRoom extends Room {
       turnSeconds: this.turnMs / 1000,
       target: this.target,
       ...(this.isPublic ? {} : { private: true as const }),
-      ...(this.voiceOn ? { voice: true as const } : {}),
+      ...(this.voiceLive() ? { voice: true as const } : {}),
+      ...(this.voiceLive() && this.isPublic ? { voiceOptIn: true as const } : {}),
       ...(this.isHeld() ? { hold: this.holdInfo()! } : {}),
       ...(this.nextEndsAt > 0 ? { nextMsLeft: Math.max(0, this.nextEndsAt - Date.now()) } : {}),
       ...(this.table.phase === 'DEAL_OVER' && this.nextVotes.size > 0 ? { nextVotes: [...this.nextVotes] } : {}),

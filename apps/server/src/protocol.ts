@@ -55,6 +55,12 @@ export type ClientMessage =
    */
   | { type: 'hears'; on: boolean }
   /**
+   * At a PUBLIC table: this player wants strangers' clips at this table (1.6.0).
+   * Without it nothing is relayed to the seat - an older app, which cannot say
+   * it, is sent nothing at a public table. Private tables ignore it.
+   */
+  | { type: 'voiceIn'; on: boolean }
+  /**
    * A clip this app was sent has started playing here (VoiceMessage `id`):
    * the room tells its speaker who heard it. Sent once per clip, by an app
    * that joined with `receipts: true`, never for a muted or hidden speaker.
@@ -216,6 +222,26 @@ export const PROTO = 1;
 export const MIN_PROTO = 0;
 /** Refused at the door: the app is too old for this server. */
 export const UPDATE_APP_CODE = 4301;
+/** A public table where somebody has blocked you, or you them (1.6.0): the app tries another table. */
+export const BLOCKED_CODE = 4302;
+/** This installation is on the config's ban list (config.ts). */
+export const BANNED_CODE = 4303;
+/** The server is closed for a moment (config.ts maintenance); tables already playing go on. */
+export const MAINTENANCE_CODE = 4304;
+/** An install ID: 32 hex digits the app made at random, once (apps/mobile/src/identity.ts). */
+export const INSTALL_ID_RE = /^[0-9a-f]{32}$/;
+/** A block list longer than this is truncated at the door. */
+export const BLOCK_LIST_MAX = 200;
+/**
+ * What an app says about itself at the door (1.6.0), beside its name: a random
+ * install ID and the install IDs it has blocked. Processed in memory only - a
+ * public table never seats two people who have blocked each other, and no
+ * clip, emote or gift crosses a block anywhere. Never stored, never published.
+ */
+export interface JoinIdentity {
+  installId?: string;
+  blocked?: string[];
+}
 export interface JoinProto {
   proto?: number;
   appVersion?: string;
@@ -338,6 +364,11 @@ export interface RoomMessage {
   nextMsLeft?: number;
   /** At DEAL_OVER: the seats that are ready for the next deal. */
   nextVotes?: Seat[];
+  /**
+   * A public table with voice on: clips reach only the seats that sent `voiceIn`
+   * (1.6.0). The app asks its player once, at the table, before saying so.
+   */
+  voiceOptIn?: true;
 }
 
 export const MSG = {

@@ -53,7 +53,12 @@ echo "== building and starting on the box (domain: $DOMAIN, build $SHA)"
 ssh "$SERVER" "bash -s" <<REMOTE
 set -euo pipefail
 cd /opt/bela
-tar xzf deploy.tgz && rm deploy.tgz
+# The box's config.json (the kill switch) is what an operator edits in an
+# emergency; a deploy must not put the repo's copy back over it. The repo's
+# file seeds a box that has none.
+EX=
+if [ -f deploy/site/config.json ]; then EX=--exclude=deploy/site/config.json; fi
+tar xzf deploy.tgz \$EX && rm deploy.tgz
 cd deploy
 export DOMAIN=$DOMAIN
 export BELA_TAG=$SHA

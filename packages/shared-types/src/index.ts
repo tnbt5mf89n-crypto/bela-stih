@@ -288,6 +288,29 @@ export interface TrickPlay {
   card: Card;
 }
 
+/** One finished trick of the deal, as everyone saw it: who led, who took it, the four plays in order. */
+export interface TrickRecord {
+  leader: Seat;
+  winner: Seat;
+  plays: TrickPlay[];
+}
+
+/** One answer in the bidding: a pass (`suit` null) or a call. */
+export interface BidRecord {
+  seat: Seat;
+  suit: Suit | null;
+}
+
+/**
+ * What the whole table has seen this deal, kept for the seat that looks back
+ * (1.6.0): the bidding and every finished trick, with seats. Public by
+ * construction - nothing here that was not said out loud or played face up.
+ */
+export interface DealHistory {
+  bids: BidRecord[];
+  tricks: TrickRecord[];
+}
+
 /**
  * The redacted state a single seat may receive over the wire. Crucially it
  * contains only the receiver's own `hand`, plus public counts of other hands.
@@ -397,6 +420,11 @@ export interface PublicView {
   belaAnnouncedBy: Seat | null;
   /** Live running score for the deal in progress; null outside PLAY. */
   dealProgress: DealProgress | null;
+  /**
+   * The deal so far, for "Pregled ruke" and the bots' memory (1.6.0). Optional
+   * on the wire: a server from before it sends none, and an app copes without.
+   */
+  history?: DealHistory;
   /** Legal actions for `seat` right now (empty if it is not this seat's turn). */
   legalActions: Action[];
 }

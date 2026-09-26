@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "scenarios": [
   {
    "name": "learn-501",
@@ -38,18 +38,31 @@
     "zvanjaPaid": 1
    },
    "dealHashes": [
-    "822fc9693bad36e9",
-    "33cb30e0596b32a0",
-    "c008166b6f3108a7",
-    "f870900b8515de91",
-    "8f362579d4c0d899",
-    "d56f4ebbff357ed3",
-    "910ad39c372316c6",
-    "4e6e4b117bcebd4d",
-    "80e2c03fc692ad65",
-    "fe06a947b4e3fe7b"
+    "f4df00c9dfbdf9c9",
+    "e3264a84bb40bc10",
+    "d6e429dbbdce5c27",
+    "ee6733c57d60c0a9",
+    "f0e17247c0cf1721",
+    "618af14338a1b943",
+    "3197476a5684932e",
+    "5fbe4621cdcfe47d",
+    "99ae95afa457e455",
+    "e331018b2d6e295b"
    ],
-   "hash": "e81371d996049641"
+   "playHashes": [
+    "fcdbaeb7026de6db",
+    "ccebbc03bdf25885",
+    "d68e5488c3864392",
+    "d7c9cadc5ba95512",
+    "f4dd35358ab0d741",
+    "c3587217af80380d",
+    "e7e0af3e48f6691e",
+    "1ea2b6fee59bc1f8",
+    "5ebd913c887b3ef6",
+    "d89bf7b32e0b236f"
+   ],
+   "hash": "f008c1858593df85",
+   "playHash": "e8c151ecded01e46"
   },
   {
    "name": "learn-701",
@@ -86,13 +99,21 @@
     "zvanjaPaid": 1
    },
    "dealHashes": [
-    "9e2b0311ed4678cb",
-    "52da07e85a97d8f0",
-    "8cdc0fe3a927fcb1",
-    "3ca9aae5bbeb62b5",
-    "6aab0b03cbd3a6d5"
+    "6b5c89e9612b9acb",
+    "d4593bcc5f013770",
+    "39c828b78e5c4b71",
+    "5de9c79f562ee2bd",
+    "a0f1a48b6419a905"
    ],
-   "hash": "df5a766b84411063"
+   "playHashes": [
+    "5a627114bfb91514",
+    "50314c6b98e50695",
+    "a3a6269b1c7a65d7",
+    "08e0481826105a16",
+    "a086a2ef10c1de0d"
+   ],
+   "hash": "f84409d0ad4f578a",
+   "playHash": "3edba1d02f403ecc"
   },
   {
    "name": "learn-1001",
@@ -130,18 +151,31 @@
     "zvanjaPaid": 5
    },
    "dealHashes": [
-    "dff5b040853efb9c",
-    "5a01d7f66125407a",
-    "f10c6a661af3c7b2",
-    "c2748bb01eec8a24",
-    "9e1c7d901456624e",
-    "f9f2c0d47d7fff30",
-    "6b1e0fcb9c1e2b9d",
-    "c408be7a84037814",
-    "15cfda30484c7388",
-    "a5333d6c501dfd26"
+    "9bf8f8f857706b5c",
+    "bb4e39989ffc5042",
+    "9d43d650e071b2da",
+    "018c3782d8bd771c",
+    "0b8a4ee0f100229e",
+    "d7b529ccdc18ac20",
+    "4ea1d8f70ce1fd9d",
+    "0b7522129f097d74",
+    "3c37a85aa372f7e0",
+    "cc1b486090189f66"
    ],
-   "hash": "4a5f4863f8c21479"
+   "playHashes": [
+    "6fa51e23867dc4b7",
+    "2a9b3ef9414c9f13",
+    "aad92a73b9029789",
+    "779a976437a12cb0",
+    "c3bf5b626d390002",
+    "41ba1670e981eea8",
+    "27b675b78ea50e31",
+    "195ade5dc9829b2d",
+    "31d0aaec812d1a04",
+    "61e1faf032a2720a"
+   ],
+   "hash": "290a119b0b18eecd",
+   "playHash": "0d0ce8e5c4d5f485"
   },
   {
    "name": "easy-501",
@@ -179,13 +213,21 @@
     "zvanjaPaid": 1
    },
    "dealHashes": [
-    "d7bb8622c0001e90",
-    "f10e309c3c5c615a",
-    "0543a8df6d1cb7a1",
-    "15351c6b7e49b265",
-    "809e4044bd97d9dc"
+    "9fc92472638aab60",
+    "922697cceeea187a",
+    "bed54fc95713ba09",
+    "0fd4acbd460d5dad",
+    "e4ecfe7a94cb8e84"
    ],
-   "hash": "89fd3f420721ae64"
+   "playHashes": [
+    "4f98b5b736a72c65",
+    "873eba622ab9d09a",
+    "549a0d37d4a80307",
+    "baf99bd78b9ecdcb",
+    "3b49481f12be491b"
+   ],
+   "hash": "57fac3eb5b69b551",
+   "playHash": "12deb6c280f79d48"
   },
   {
    "name": "easy-701",
@@ -224,15 +266,25 @@
     "zvanjaPaid": 2
    },
    "dealHashes": [
-    "193695b07be163b6",
-    "763bc3186ccddbb6",
-    "ae549ba203e5745e",
-    "8d3a21a262780d60",
-    "ce9c9eae94d1cb16",
-    "fc818a62b407c438",
-    "329cedfe05ceaafe"
+    "420c1c32749b164e",
+    "05d8d6f8f6f769b6",
+    "f4d60778e1b7d846",
+    "b08caf6e0e5439c0",
+    "4cbe7a243fd2542e",
+    "d73eecc8430da590",
+    "c668602cfe36fac6"
    ],
-   "hash": "740ffee0ce8cc4b8"
+   "playHashes": [
+    "86eaf929a68230cb",
+    "f500f71a7642fe08",
+    "2dadfb2ec9220832",
+    "338475a7139bd5ad",
+    "9e87c9cabafd5166",
+    "b4ee5bd8a4268472",
+    "8dab4ddcabed56ee"
+   ],
+   "hash": "2b898552b1721b84",
+   "playHash": "ced35778feff8bcc"
   },
   {
    "name": "easy-1001",
@@ -271,19 +323,33 @@
     "zvanjaPaid": 6
    },
    "dealHashes": [
-    "f5e91596dd0bc276",
-    "413b2bb7ecd40e11",
-    "09e76dc073cbc6ae",
-    "a7d2481df45882d3",
-    "cefdc29a956ccd02",
-    "283d1b873e419477",
-    "9beab71150b28a85",
-    "296ab7920d8cc496",
-    "2a649342d8ea6280",
-    "95119e34c0ee964a",
-    "ea411a9d7cd3fb99"
+    "4c26b398b8ca9b3e",
+    "63b8e70ddf3c9539",
+    "2229384a2944b676",
+    "269cca872ea4456b",
+    "1163965caee5614a",
+    "69329cef291bdb07",
+    "d457a61bc50e272d",
+    "0e560736db7bd116",
+    "2b4b319aeb5372b0",
+    "1a160470d7bb044a",
+    "d8ed846bfd173051"
    ],
-   "hash": "df9152643223a822"
+   "playHashes": [
+    "915b13624e617b48",
+    "b0a7c78c694786d6",
+    "8829a7262dc470da",
+    "19e71d0619eb1060",
+    "a9bc6718ceacb588",
+    "7ae1b913e03d19f9",
+    "180e4f09aed3d549",
+    "4c22d12b454b0b55",
+    "b6295853b20ac437",
+    "b6bec9f3d07bf8cd",
+    "9927881d4de1bd27"
+   ],
+   "hash": "f3c54f12475803fe",
+   "playHash": "6923d76fc9e1d7c7"
   },
   {
    "name": "hard-501",
@@ -322,12 +388,19 @@
     "zvanjaPaid": 1
    },
    "dealHashes": [
-    "54c23087d58be3c7",
-    "a5585aafe58ab379",
-    "8ad93e176fb7fe6d",
-    "3a99c31635145804"
+    "fd9218c9d6fa75af",
+    "b1dda54f2452eb39",
+    "957799d71ca3308d",
+    "05a73f9e658c2c94"
    ],
-   "hash": "d1c5ecd7ab24fb35"
+   "playHashes": [
+    "905d0a023c4d41ec",
+    "2e69a2030f173881",
+    "3aae25da25a7216c",
+    "99c037163a46917a"
+   ],
+   "hash": "4068c1be60812e46",
+   "playHash": "961be38669b5ec4c"
   },
   {
    "name": "hard-701",
@@ -367,14 +440,23 @@
     "zvanjaPaid": 2
    },
    "dealHashes": [
-    "55a310559bcbe357",
-    "d16fcf7aedca2c60",
-    "3d049ad2d98c66c6",
-    "f2bb0fb5eca84201",
-    "7b7455fd7b603313",
-    "ca6ac8b8d443dc86"
+    "0416287daa3bd677",
+    "296759280ab15e78",
+    "bfedd244b58cbefe",
+    "6bd3e53330718a79",
+    "66e7f1f5ec528063",
+    "ccb1a244a95f6bd6"
    ],
-   "hash": "da7196784e505aa8"
+   "playHashes": [
+    "9a199704560733aa",
+    "c2d562011e8c2835",
+    "a64c031003d3d4d2",
+    "664a34483fd30cf4",
+    "5e448eface4d0a0a",
+    "c41dcab04d5f960c"
+   ],
+   "hash": "f165d45a948c734e",
+   "playHash": "c402904fbd0825bf"
   },
   {
    "name": "hard-1001",
@@ -414,19 +496,33 @@
     "zvanjaPaid": 2
    },
    "dealHashes": [
-    "060dafbf2639244b",
-    "1678a76f0dca85e1",
-    "834276901407e46e",
-    "93b39a279da4df7b",
-    "58184ae8b357a2f6",
-    "d5ec68d30cd7a247",
-    "ab7cb2bc22431524",
-    "d5c5642a9423fc2a",
-    "c5f50bf6893d3f20",
-    "94707ac598512b53",
-    "217921f28b473512"
+    "9d23d677545f9adb",
+    "1939a47fe929c561",
+    "294e2832ee0768f6",
+    "936039cf1d22512b",
+    "c68b767ee0c03c8e",
+    "93dacf5391e219b7",
+    "608ef0123e08d6bc",
+    "d589352ef18e6d6a",
+    "44ae5fc26cc8ccd0",
+    "867055f53c429403",
+    "f98e103e86b1a3c2"
    ],
-   "hash": "85e74b23f52497c9"
+   "playHashes": [
+    "0ab59051afb4c9ad",
+    "52ef38867e3f9816",
+    "82a53ee198866331",
+    "3a9c4e5318d81f19",
+    "47d3ccd7a34acf09",
+    "a6ee15e2e39eb74c",
+    "680a6ba7e15d7585",
+    "95975717b7be3e73",
+    "35de33fe237abe0c",
+    "062201480b53bcc2",
+    "3f013cef964ae0dd"
+   ],
+   "hash": "90030a72d02abdfe",
+   "playHash": "6fe26eb66af50492"
   },
   {
    "name": "knobs-kontra-tiecancel-1001",
@@ -468,12 +564,19 @@
     "zvanjaPaid": 1
    },
    "dealHashes": [
-    "14d1f3ba774d2abc",
-    "96677b963ed4c824",
-    "4298a7bbb05286c9",
-    "9562a2a4469126ae"
+    "7f1d137436a54bf4",
+    "b9310112f65737f4",
+    "3f79e59991c91ab1",
+    "c02f68468a70ef66"
    ],
-   "hash": "18d55ff614cf8bfc"
+   "playHashes": [
+    "0b3f0eba4e8588ce",
+    "f54cc98d2dd6e387",
+    "e950739a49fbccf4",
+    "75a7d473a7f762bb"
+   ],
+   "hash": "c005d61e405938c0",
+   "playHash": "e1b9fa5c60f98a8a"
   },
   {
    "name": "knobs-french-701",
@@ -513,15 +616,25 @@
     "zvanjaPaid": 3
    },
    "dealHashes": [
-    "2595202ab9770dee",
-    "e8d666d483b08fe0",
-    "68972950da9fba2a",
-    "0f00204832c6e294",
-    "28136c30f4332220",
-    "07d915e9d46352c5",
-    "bd0e53576ae77543"
+    "b71b57ec6791e196",
+    "b1d290482bd35e10",
+    "6ffb9e98eb58be7a",
+    "310853d2e7e38e5c",
+    "a92708305994f3d0",
+    "174646abf3282ead",
+    "2aeec9c9fc84bf1b"
    ],
-   "hash": "d327818aba3de382"
+   "playHashes": [
+    "a6aef70cea1e2b16",
+    "cb15ce3c53bec78e",
+    "c8bb5b45d298152b",
+    "2ebfc84d27931fab",
+    "429e38100c1d8a36",
+    "5ec68a24d2324abe",
+    "d32bdc4b70c89299"
+   ],
+   "hash": "ae9e5a759e957775",
+   "playHash": "c079368544eec1db"
   },
   {
    "name": "knobs-auto-scope-701",
@@ -565,11 +678,17 @@
     "zvanjaPaid": 2
    },
    "dealHashes": [
-    "ae24f6c5d810448f",
-    "6ae195107ffb51ae",
-    "8243890ee8ede384"
+    "96e1f4d9bd15b3cf",
+    "3845c134aa8a536e",
+    "57c1e722362b45f4"
    ],
-   "hash": "07a7fb2a85a50aac"
+   "playHashes": [
+    "10fc82e50f4d943f",
+    "10019c6a8c3f87cc",
+    "fe712e60cf586058"
+   ],
+   "hash": "5d75f6ee39fed2d2",
+   "playHash": "3b63a1440769ddbc"
   },
   {
    "name": "knobs-tiecancel-cancelled-501",
@@ -609,10 +728,15 @@
     "zvanjaPaid": 0
    },
    "dealHashes": [
-    "e8a2bd5d4d2097ed",
-    "40cdbaf1401ee8b7"
+    "7ca178d5b9d249fd",
+    "26f62bdf9da5815f"
    ],
-   "hash": "9cf03fb622cb0bf8"
+   "playHashes": [
+    "b68a0493963999bb",
+    "207f08e8760f3cb0"
+   ],
+   "hash": "7cf05614e2c90a3e",
+   "playHash": "da3fff70cfb4eb76"
   },
   {
    "name": "renons-hard-501-a",
@@ -650,13 +774,21 @@
     "zvanjaPaid": 3
    },
    "dealHashes": [
-    "7cc0ef6fa91a2647",
-    "e243f1001f5f7f7a",
-    "90f16fdde322f80f",
-    "bc89e48b3ef84709",
-    "ff333db7a879cf2d"
+    "1cce391febc2a737",
+    "71e6b3bc9f3f03ca",
+    "4de31995ed2c2acf",
+    "cfdab9dd5ae52681",
+    "42a15ba7b11e3aad"
    ],
-   "hash": "67939ea5183c166f"
+   "playHashes": [
+    "b80daed529078b73",
+    "a562910d588df469",
+    "98d851ec6c161d06",
+    "42a2b3f8b58207a0",
+    "7a90345b775ca701"
+   ],
+   "hash": "e1cd01a191486535",
+   "playHash": "39685275a1731397"
   },
   {
    "name": "renons-hard-501-b",
@@ -694,14 +826,23 @@
     "zvanjaPaid": 1
    },
    "dealHashes": [
-    "b035eeec27b2dd30",
-    "9fac9f610d6a9a8d",
-    "a064bd2c0849ddf8",
-    "00cde891b5272ded",
-    "f7bccf9139110369"
+    "4c399130bd74a690",
+    "75cde43bc56aefa5",
+    "edcc6e88d46bae48",
+    "368723d3fe5ba075",
+    "d207bbcdc8376569"
    ],
-   "hash": "be391182175f44e2"
+   "playHashes": [
+    "e26d2a0c28d1a6a2",
+    "bce7741e9b09ae40",
+    "57dfd6616607b15b",
+    "8021450ec5b54016",
+    "279cc53053f0dfda"
+   ],
+   "hash": "8b87d03539c79f19",
+   "playHash": "f7e6facd50b10f39"
   }
  ],
- "hash": "c162ca467fabf930"
+ "hash": "91a4643a56d5900c",
+ "playHash": "cdfd9711636c1483"
 }

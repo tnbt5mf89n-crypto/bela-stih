@@ -30,15 +30,23 @@ describe('the golden corpus', () => {
     expect(report.scenarios.map((s) => s.name)).toEqual(expected.scenarios.map((s) => s.name));
     for (const [i, s] of report.scenarios.entries()) {
       const was = expected.scenarios[i]!;
+      // The rules first: the actions, the events and the result of every deal.
+      const firstPlay = s.playHashes.findIndex((h, d) => h !== was.playHashes[d]);
+      expect(
+        firstPlay,
+        `${s.name} (seed ${s.seed}): deal ${firstPlay + 1} of ${s.playHashes.length} PLAYS differently (${s.playHashes[firstPlay]} vs ${was.playHashes[firstPlay]}) - the rules changed`,
+      ).toBe(-1);
+      // Then the views: a field added to PublicView moves these and only these.
       const firstDiff = s.dealHashes.findIndex((h, d) => h !== was.dealHashes[d]);
       expect(
         firstDiff,
-        `${s.name} (seed ${s.seed}): deal ${firstDiff + 1} of ${s.dealHashes.length} no longer hashes the same (${s.dealHashes[firstDiff]} vs ${was.dealHashes[firstDiff]}) - a rules change?`,
+        `${s.name} (seed ${s.seed}): deal ${firstDiff + 1} of ${s.dealHashes.length} no longer hashes the same (${s.dealHashes[firstDiff]} vs ${was.dealHashes[firstDiff]}) - the views or events changed (the plays did not)`,
       ).toBe(-1);
       expect(s.dealHashes.length, `${s.name}: the match now has a different number of deals`).toBe(was.dealHashes.length);
       expect(s.hash).toBe(was.hash);
     }
     expect(report.hash).toBe(expected.hash);
+    expect(report.playHash).toBe(expected.playHash);
   });
 
   it('reaches every event kind and every rare path', () => {

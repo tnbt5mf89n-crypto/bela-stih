@@ -150,20 +150,20 @@ describe('the room', () => {
   const relay = room.slice(room.indexOf("if (packet.type === 'voice') {"), room.indexOf("if (packet.type === 'gift') {"));
 
   it('relays only where voice is on, from an app that records, what checkClip takes, within the allowance', () => {
-    expect(relay).toMatch(/if \(!this\.voiceOn \|\| !this\.occupants\[seat\]!\.voice\) return;/);
+    expect(relay).toMatch(/if \(!this\.voiceOn \|\| !config\(\)\.voice \|\| !this\.occupants\[seat\]!\.voice\) return;/);
     expect(relay).toMatch(/const clip = checkClip\(m\?\.mime, m\?\.data, m\?\.ms\);\s*if \(clip === null\) return;/);
     expect(relay).toMatch(/if \(!limiter\.take\(Date\.now\(\), clip\.ms\)\) return;/);
   });
 
   it('sends the clip to the others whose apps play it, and the speaker only an echo without it', () => {
-    expect(relay).toMatch(/if \(s === null \|\| s === seat \|\| !this\.hearsVoice\(s\)\) continue;\s*other\.send\(MSG\.voice, out\);/);
+    expect(relay).toMatch(/if \(s === null \|\| s === seat \|\| !this\.hearsVoice\(s\) \|\| !this\.reaches\(seat, s\)\) continue;\s*other\.send\(MSG\.voice, out\);/);
     expect(relay).toMatch(
       /const echo: VoiceMessage = \{ from: seat, id, ms: clip\.ms, mime: clip\.mime, to, \.\.\.\(noReceipt\.length > 0 \? \{ noReceipt \} : \{\}\) \};\s*client\.send\(MSG\.voice, echo\);/,
     );
     expect(relay).not.toMatch(/broadcast/);
     // Nothing keeps it, nothing prints it.
     expect(relay).not.toMatch(/console\./);
-    expect(room).toMatch(/return o\.sessionId !== null && o\.connected && o\.voice;/);
+    expect(room).toMatch(/return o\.sessionId !== null && o\.connected && o\.voice && \(!this\.isPublic \|\| \(o\.voiceIn && config\(\)\.strangerClips\)\);/);
   });
 
   it("hears a player's Settings switch, from an app that can do voice, without calling them back", () => {
@@ -172,14 +172,15 @@ describe('the room', () => {
     // Nothing published: a toggling client costs the table nothing.
     expect(hears).not.toMatch(/this\.(publish|broadcast)\(/);
     expect(room).toMatch(/speaksVoice: typeof options\.voice === 'boolean',/);
-    expect(room).toMatch(/gifts: false, voice: false, speaksVoice: false, receipts: false, proto: 0 \}\);/);
+    expect(room).toMatch(/gifts: false, voice: false, speaksVoice: false, receipts: false, proto: 0, installId: '', blocked: new Set\(\), voiceIn: false \}\);/);
   });
 
   it('lets a private table\'s host switch voice off before the start, and quick play keep it', () => {
     expect(room).toMatch(/private voiceOn = true;/);
     const rules = room.slice(room.indexOf("if (packet.type === 'rules') {"), room.indexOf("if (packet.type === 'pause') {"));
     expect(rules).toMatch(/if \(this\.started \|\| this\.isPublic \|\| seat !== this\.actingHostSeat\(\)\) return;\s*\/\/[^\n]*\n\s*const voiceChanged = typeof m\?\.voice === 'boolean'/);
-    expect(room).toMatch(/\.\.\.\(this\.voiceOn \? \{ voice: true as const \} : \{\}\),/);
+    expect(room).toMatch(/\.\.\.\(this\.voiceLive\(\) \? \{ voice: true as const \} : \{\}\),/);
+    expect(room).toMatch(/return this\.voiceOn && config\(\)\.voice && \(!this\.isPublic \|\| config\(\)\.strangerClips\);/);
   });
 
   it('forgets a connection that has gone for good, voice allowance and all', () => {

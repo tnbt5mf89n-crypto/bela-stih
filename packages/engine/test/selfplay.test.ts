@@ -143,6 +143,11 @@ function assertPure(before: GameState, action: Action): void {
  * secret is the whole reason the reveal is scoped to the winner.
  */
 function assertNoLeak(s: GameState): void {
+  // The history names only cards already played, and all of them.
+  const h = publicView(s, 0).history!;
+  expect(h.tricks).toHaveLength(s.completedTricks.length);
+  const held = new Set(s.hands.flat().map(cardId));
+  for (const t of h.tricks) for (const p of t.plays) expect(held.has(cardId(p.card))).toBe(false);
   for (const d of s.revealedDeclarations) {
     // Announced by that seat — matched on the CARD SET, not on kind/value/top.
     // Matching on the description only bounded what the reveal claimed to be,

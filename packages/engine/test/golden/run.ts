@@ -20,7 +20,7 @@ import { Table, type TableEvent } from '@belot/table';
  * Seeds are fixed and small: a corpus is worth nothing if it changes by itself.
  */
 
-export const GOLDEN_VERSION = 2;
+export const GOLDEN_VERSION = 3;
 
 /** Every event kind the table can emit; the corpus must reach each one. */
 export const EVENT_KINDS: TableEvent['kind'][] = [
@@ -115,13 +115,22 @@ export interface ScenarioReport {
   coverage: Coverage;
   /** One per scored deal, in order: the hash of everything recorded for it. */
   dealHashes: string[];
+  /**
+   * One per scored deal: the hash of the actions, the events and the result
+   * only - not the views. The RULES: a change here is a rules change. A view
+   * that grows (a new field) moves dealHashes and leaves these alone.
+   */
+  playHashes: string[];
   hash: string;
+  playHash: string;
 }
 
 export interface GoldenReport {
   version: number;
   scenarios: ScenarioReport[];
   hash: string;
+  /** Over the play hashes only: the rules' own fingerprint. */
+  playHash: string;
 }
 
 // --- determinism helpers ---------------------------------------------------
@@ -181,6 +190,7 @@ export function runScenario(sc: Scenario): ScenarioReport {
   const events: Record<string, number> = {};
   const coverage: Coverage = { pad: 0, valat: 0, muss: 0, bela: 0, contest: 0, cancelled: 0, renons: 0, kontra: 0, announced: 0, renonsZvanja: 0, zvanjaPaid: 0 };
   const dealHashes: string[] = [];
+  const playHashes: string[] = [];
   let steps = 0;
 
   const count = (es: TableEvent[]) => {
@@ -262,11 +272,15 @@ export function runScenario(sc: Scenario): ScenarioReport {
     }
     if (doubled) coverage.kontra++;
     dealHashes.push(hash64(canon(deal)));
+    playHashes.push(hash64(canon({ start: deal.start, steps: deal.steps.map((st) => ({ a: st.a, e: st.e })), result: deal.result })));
 
     if (table.phase === 'MATCH_OVER') {
       const tail = table.drainEvents();
       count(tail);
-      if (tail.length) dealHashes.push(hash64(canon({ tail })));
+      if (tail.length) {
+        dealHashes.push(hash64(canon({ tail })));
+        playHashes.push(hash64(canon({ tail })));
+      }
       if (sc.rematch && matches === 0) {
         matches++;
         table.newMatch({ seed: sc.seed + 1 });
@@ -286,11 +300,18 @@ export function runScenario(sc: Scenario): ScenarioReport {
     events,
     coverage,
     dealHashes,
+    playHashes,
     hash: hash64(dealHashes.join('|')),
+    playHash: hash64(playHashes.join('|')),
   };
 }
 
 export function runGolden(only?: string[]): GoldenReport {
   const scenarios = SCENARIOS.filter((s) => !only || only.includes(s.name)).map(runScenario);
-  return { version: GOLDEN_VERSION, scenarios, hash: hash64(scenarios.map((s) => s.hash).join('|')) };
+  return {
+    version: GOLDEN_VERSION,
+    scenarios,
+    hash: hash64(scenarios.map((s) => s.hash).join('|')),
+    playHash: hash64(scenarios.map((s) => s.playHash).join('|')),
+  };
 }

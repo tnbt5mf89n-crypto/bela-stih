@@ -20,11 +20,11 @@ const ROOT = join(here, '..', '..', '..');
 const SNAPSHOT = join(here, 'wire-schema.snapshot.json');
 
 const WANTED: Record<string, string[]> = {
-  'apps/server/src/protocol.ts': ['ClientMessage', 'RoomMessage', 'SeatInfo', 'VoiceMessage', 'VoiceHeardMessage', 'EmoteMessage', 'GiftMessage', 'JoinGifts', 'JoinVoice', 'JoinProto', 'HoldInfo'],
+  'apps/server/src/protocol.ts': ['ClientMessage', 'RoomMessage', 'SeatInfo', 'VoiceMessage', 'VoiceHeardMessage', 'EmoteMessage', 'GiftMessage', 'JoinGifts', 'JoinVoice', 'JoinProto', 'JoinIdentity', 'HoldInfo'],
   'packages/table/src/index.ts': ['TableEvent'],
   // Everything a view or an action is made of, spelled out - a named type printed by its name
   // (`Phase`, `Card[]`) would let its members change unseen.
-  'packages/shared-types/src/index.ts': ['PublicView', 'Action', 'Card', 'Suit', 'Rank', 'ContractType', 'PlayContext', 'Seat', 'TeamId', 'Phase', 'TrickPlay', 'DealProgress', 'Declaration', 'DeclarationSummary', 'DeclarationKind', 'DeclarationMode', 'RenonsMode', 'BelaMode', 'EngineConfig'],
+  'packages/shared-types/src/index.ts': ['PublicView', 'Action', 'Card', 'Suit', 'Rank', 'ContractType', 'PlayContext', 'Seat', 'TeamId', 'Phase', 'TrickPlay', 'TrickRecord', 'BidRecord', 'DealHistory', 'DealProgress', 'Declaration', 'DeclarationSummary', 'DeclarationKind', 'DeclarationMode', 'RenonsMode', 'BelaMode', 'EngineConfig'],
   'packages/engine/src/index.ts': ['DealScoreResult'],
 };
 
@@ -136,7 +136,9 @@ describe('the wire schema', () => {
     // A type the checker could not resolve prints as any/error and would pin nothing: never in the snapshot.
     expect(JSON.stringify(now)).not.toMatch(/"text":"(any|error|unknown)"/);
     // Additions are fine, but the snapshot must say so: an unsnapshotted addition is a forgotten one.
-    expect(JSON.stringify(now), 'the wire grew: refresh the snapshot with SCHEMA_UPDATE=1 and say what was added').toBe(JSON.stringify(was));
+    if (!process.env.SCHEMA_UPDATE) {
+      expect(JSON.stringify(now), 'the wire grew: refresh the snapshot with SCHEMA_UPDATE=1 and say what was added').toBe(JSON.stringify(was));
+    }
   });
 
   it('spells out what matters', () => {

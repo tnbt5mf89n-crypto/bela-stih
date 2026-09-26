@@ -3,6 +3,7 @@ import express, { type Request, type Response } from 'express';
 import { matchMaker, Server } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { BelaRoom } from './BelaRoom';
+import { configStatus, startConfigPolling } from './config';
 import { MAX_FRAME_BYTES, MIN_PROTO, PROTO, ROOM_NAME, ROOM_NAME_MODES } from './protocol';
 
 /**
@@ -54,8 +55,12 @@ app.get('/health', (_req: Request, res: Response) => {
     rooms: matchMaker.stats.local.roomCount,
     players: matchMaker.stats.local.ccu,
     uptimeSeconds: Math.floor((Date.now() - STARTED_AT) / 1000),
+    config: configStatus(),
   });
 });
+
+// The kill switch (config.ts): CONFIG_URL polled every minute, or CONFIG_JSON once.
+startConfigPolling(process.env);
 
 const httpServer = createServer(app);
 const gameServer = new Server({

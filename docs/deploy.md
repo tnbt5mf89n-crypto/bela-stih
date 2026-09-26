@@ -58,6 +58,30 @@ left, so a second rollback returns), restarts from the image already on the box
 (no build), and ends only when `/health` reports that sha - as the deploy does
 for the build it just made. Then fix forward.
 
+## The kill switch: config.json
+
+`https://bela.yourdomain.com/config.json` is a static file caddy serves from
+`/opt/bela/deploy/site/config.json`; the game server re-reads it every minute
+(`CONFIG_URL`, apps/server/src/config.ts) and `/health` shows what it read:
+
+```json
+{ "v": 1, "minProto": 0, "maintenance": false, "voice": true,
+  "strangerClips": true, "gifts": true, "emotes": true, "banned": [] }
+```
+
+- `maintenance: true` refuses every new seat (the app says the server is
+  closed for a moment); tables already playing go on. Flip it back when done.
+- `voice`, `gifts`, `emotes` switch a feature off everywhere; `strangerClips`
+  only at public tables (private tables keep voice).
+- `minProto` raises the oldest app admitted without a deploy (protocol.ts).
+- `banned` lists install IDs (32 hex digits, from a report) refused at the door.
+
+Edit it on the box (`nano /opt/bela/deploy/site/config.json`); within a minute
+`/health` reflects it. A deploy leaves the box's copy alone (the repo's file
+only seeds a new box), so a ban survives releases - and is lost with the box.
+Every field is optional; a typo in one field falls back to that field's
+default, and a file that fails to parse changes nothing.
+
 ## Wire transcripts
 
 ```bash

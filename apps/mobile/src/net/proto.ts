@@ -9,3 +9,9 @@ export const PROTO = 1;
 
 /** The server's refusal: this app is too old for that wire. */
 export const UPDATE_APP_CODE = 4301;
+/** A public table where somebody blocked you, or you them: try another table. */
+export const BLOCKED_CODE = 4302;
+/** This installation is banned. */
+export const BANNED_CODE = 4303;
+/** The server is closed for a moment. */
+export const MAINTENANCE_CODE = 4304;

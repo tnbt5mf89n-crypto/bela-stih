@@ -260,6 +260,12 @@ export function checkView(r: Received, pub: Set<string>, everHeld: Map<Seat, Set
       if (!pub.has(cardId(c))) bad.push(`revealedDeclarations shows ${cardId(c)}, never revealed`);
     }
   }
+  // The deal's history (1.6.0): finished tricks, so only cards the table saw played.
+  for (const t of view.history?.tricks ?? []) {
+    for (const p of t.plays) {
+      if (!pub.has(cardId(p.card))) bad.push(`history shows ${cardId(p.card)}, never played`);
+    }
+  }
   // 3. Summaries promise to carry no cards — the whole reason the type exists.
   if (allCardIds(view.announcedDeclarations).size > 0) {
     bad.push('announcedDeclarations carried cards; it is supposed to be summaries only');
@@ -400,6 +406,14 @@ function selfTest(): boolean {
       () => {
         const view = sampleView(mine, [2, 2, 8, 8]);
         (view.currentTrick as unknown as unknown[]).push({ seat: 1, card: theirs[0] });
+        return checkViewT(received(view), nothingPublic());
+      },
+    ],
+    [
+      "an opponent's hand dressed up as a finished trick in the history",
+      () => {
+        const view = sampleView(mine, [2, 2, 8, 8]);
+        (view as unknown as { history: unknown }).history = { bids: [], tricks: [{ leader: 1, winner: 1, plays: [{ seat: 1, card: theirs[0] }] }] };
         return checkViewT(received(view), nothingPublic());
       },
     ],

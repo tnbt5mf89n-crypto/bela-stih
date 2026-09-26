@@ -908,7 +908,8 @@ describe('table gifts', () => {
       .slice(1)
       .map((l) => l.trim())
       .find((l) => l !== '' && !l.startsWith('//'));
-    expect(firstStatement).toBe('if (!this.started) return;');
+    // ...and the kill switch (config.ts) in the same breath.
+    expect(firstStatement).toBe('if (!this.started || !config().gifts) return;');
     expect(branch).toMatch(/< GIFT_GAP_MS\) return;/);
     expect(branch.slice(0, branch.indexOf('this.broadcast(MSG.gift'))).not.toMatch(/this\.publish\(\)/);
   });

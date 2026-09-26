@@ -18,6 +18,9 @@ services:
       args:
         GIT_SHA: ${BELA_TAG:-dev}
     restart: unless-stopped
+    environment:
+      # The kill switch (apps/server/src/config.ts), served by caddy from ./site.
+      CONFIG_URL: https://${DOMAIN}/config.json
     # Marks the container unhealthy when it stops answering /health, so
     # `docker compose ps` says so where a hung event loop used to sit there
     # "Up" while every table was dead. Nothing restarts it by itself (plain

@@ -62,6 +62,13 @@
    {
     "kind": "object",
     "props": {
+     "type": "\"voiceIn\"",
+     "on": "boolean"
+    }
+   },
+   {
+    "kind": "object",
+    "props": {
      "type": "\"heard\"",
      "id": "number"
     }
@@ -153,7 +160,8 @@
    "voice?": "true | undefined",
    "hold?": "HoldInfo | undefined",
    "nextMsLeft?": "number | undefined",
-   "nextVotes?": "Seat[] | undefined"
+   "nextVotes?": "Seat[] | undefined",
+   "voiceOptIn?": "true | undefined"
   }
  },
  "apps/server/src/protocol.ts:SeatInfo": {
@@ -221,6 +229,13 @@
   "props": {
    "proto?": "number | undefined",
    "appVersion?": "string | undefined"
+  }
+ },
+ "apps/server/src/protocol.ts:JoinIdentity": {
+  "kind": "object",
+  "props": {
+   "installId?": "string | undefined",
+   "blocked?": "string[] | undefined"
   }
  },
  "apps/server/src/protocol.ts:HoldInfo": {
@@ -377,6 +392,7 @@
    "canAnnounceBela": "boolean",
    "belaAnnouncedBy": "Seat | null",
    "dealProgress": "DealProgress | null",
+   "history?": "DealHistory | undefined",
    "legalActions": "Action[]"
   }
  },
@@ -488,6 +504,28 @@
   "props": {
    "seat": "0 | 1 | 2 | 3",
    "card": "Card"
+  }
+ },
+ "packages/shared-types/src/index.ts:TrickRecord": {
+  "kind": "object",
+  "props": {
+   "leader": "0 | 1 | 2 | 3",
+   "winner": "0 | 1 | 2 | 3",
+   "plays": "TrickPlay[]"
+  }
+ },
+ "packages/shared-types/src/index.ts:BidRecord": {
+  "kind": "object",
+  "props": {
+   "seat": "0 | 1 | 2 | 3",
+   "suit": "Suit | null"
+  }
+ },
+ "packages/shared-types/src/index.ts:DealHistory": {
+  "kind": "object",
+  "props": {
+   "bids": "BidRecord[]",
+   "tricks": "TrickRecord[]"
   }
  },
  "packages/shared-types/src/index.ts:DealProgress": {

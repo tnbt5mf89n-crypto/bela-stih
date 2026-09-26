@@ -37,7 +37,7 @@ describe('the wire generation', () => {
 
   it('is refused at the door, and the app says to update', () => {
     const room = readFileSync(join(here, '../../server/src/BelaRoom.ts'), 'utf8');
-    expect(room).toMatch(/override onAuth\(_client: Client, options: unknown, context: AuthContext\)[\s\S]{0,300}if \(protoOf\(options\) < MIN_PROTO\) throw new ServerError\(UPDATE_APP_CODE, 'update the app'\);/);
+    expect(room).toMatch(/override onAuth\(_client: Client, options: unknown, context: AuthContext\)[\s\S]{0,700}if \(protoOf\(options\) < Math\.max\(MIN_PROTO, cfg\.minProto\)\) throw new ServerError\(UPDATE_APP_CODE, 'update the app'\);/);
     expect(room).toMatch(/proto: protoOf\(options\),/);
     expect(troubleOf({ code: 4301, message: 'update the app' })).toBe('appTooOld');
     expect(retryHelps('appTooOld')).toBe(false);
@@ -47,6 +47,15 @@ describe('the wire generation', () => {
       expect(ui.troubleAppTooOld.length, id).toBeGreaterThan(10);
       expect(ui.crashCopy.length, id).toBeGreaterThan(3);
       expect(ui.crashCopied, id).toContain('prijave@belastih.com');
+    }
+  });
+
+  it('the door has one code per refusal, on both sides', () => {
+    const p = readFileSync(join(here, '../../server/src/protocol.ts'), 'utf8');
+    const a = src('net/proto.ts');
+    for (const [name, code] of [['UPDATE_APP_CODE', 4301], ['BLOCKED_CODE', 4302], ['BANNED_CODE', 4303], ['MAINTENANCE_CODE', 4304]] as const) {
+      expect(p).toMatch(new RegExp(`export const ${name} = ${code};`));
+      expect(a).toMatch(new RegExp(`export const ${name} = ${code};`));
     }
   });
 

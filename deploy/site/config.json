@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "minProto": 0,
+  "maintenance": false,
+  "voice": true,
+  "strangerClips": true,
+  "gifts": true,
+  "emotes": true,
+  "banned": []
+}
