@@ -1,6 +1,6 @@
 import { isPlayMode, type PlayMode } from './playMode';
 import { Platform } from 'react-native';
-import { emptyProfile, ensureQuests, isoDay, type PlayerProfile } from '@belot/progression'
+import { emptyProfile, ensureQuests, isoDay, migrateProfile, type PlayerProfile } from '@belot/progression'
 import { ensureInstallId, hexOf, readBlocked, readConduct, writeBlocked, writeConduct, type BlockedPlayer } from './identity';;
 import { localeFor } from './locale';
 import type { MatchRecord } from './net/history';
@@ -138,9 +138,16 @@ function write(key: string, value: unknown): void {
   }
 }
 
-/** The stored profile, with today's quests already rolled in. */
+/** The stored profile, whatever app wrote it (migrateProfile), with today's quests already rolled in. */
 export function loadProfile(today = isoDay(new Date())): PlayerProfile {
-  return ensureQuests(read(KEY.profile, emptyProfile()), today);
+  let raw: unknown = null;
+  try {
+    const json = store.getString(KEY.profile);
+    raw = json ? JSON.parse(json) : null;
+  } catch {
+    raw = null;
+  }
+  return ensureQuests(migrateProfile(raw), today);
 }
 
 export function saveProfile(profile: PlayerProfile): void {

@@ -135,6 +135,7 @@ export interface UiStrings {
   statBela: string;
   statValat: string;
   statBestDeal: string;
+  statGifts: string;
   coinsDisclaimer: string;
   back: string;
   /** The branded screen a render error lands on, instead of a blank one. */
@@ -967,6 +968,7 @@ const hr: Strings = {
     statBela: 'Bele',
     statValat: 'Štiglje',
     statBestDeal: 'Najbolje dijeljenje',
+    statGifts: 'Poslani darovi',
     coinsDisclaimer: 'Novčići služe samo za igru. Nema uplata ni isplata pravog novca.',
     back: 'Natrag',
     crashTitle: 'Nešto je pošlo po zlu',
@@ -1540,6 +1542,7 @@ const srCyrl: Strings = {
     statBela: 'Беле',
     statValat: 'Штигље',
     statBestDeal: 'Најбоље дељење',
+    statGifts: 'Послати поклони',
     coinsDisclaimer: 'Новчићи служе само за игру. Нема уплата ни исплата правог новца.',
     back: 'Назад',
     crashTitle: 'Нешто је пошло по злу',
@@ -2110,6 +2113,7 @@ const en: Strings = {
     statBela: 'Belas',
     statValat: 'Štiglje',
     statBestDeal: 'Best deal',
+    statGifts: 'Gifts sent',
     coinsDisclaimer: 'Coins are for play only. No real-money deposits or payouts.',
     back: 'Back',
     crashTitle: 'Something went wrong',

@@ -43,6 +43,7 @@ const FONTS = {
 LogBox.ignoreLogs(['Reduced motion setting is overwritten']);
 import { setCardLocale, setCosmetics, setDeckStyle } from './src/cosmetics';
 import { ErrorBoundary } from './src/ui/ErrorBoundary';
+import { ensureQuests, isoDay } from '@belot/progression';
 import { APP_VERSION } from './src/screens/common';
 import { useMotionPolicy } from './src/anim/useMotionPolicy';
 import { MotionProvider } from './src/anim/MotionHere';
@@ -108,6 +109,19 @@ export default function App() {
     saveProfile(p);
     setProfile(p);
   }, []);
+
+  // Midnight at the menus: the quests roll over without a relaunch. In a game
+  // the outcome carries the day (feedback.ts), so only the menus need a clock.
+  useEffect(() => {
+    if (launch !== null) return;
+    const tick = () => {
+      const today = isoDay(new Date());
+      if (profile.questDay !== today) updateProfile(ensureQuests(profile, today));
+    };
+    tick();
+    const t = setInterval(tick, 60_000);
+    return () => clearInterval(t);
+  }, [launch, profile, updateProfile]);
 
   const updateSettings = useCallback((s: Settings) => {
     saveSettings(s);

@@ -18,7 +18,16 @@
 // Profile
 // ---------------------------------------------------------------------------
 
+/**
+ * The stored profile's format. 1 was everything up to 1.5.x (no version field
+ * at all); 2 (1.6.0) adds this field. migrateProfile() brings any older record
+ * up; a record from a NEWER app is kept as it is, never cut down.
+ */
+export const PROFILE_VERSION = 2;
+
 export interface PlayerProfile {
+  /** PROFILE_VERSION when written; an old record has none. */
+  version: number;
   xp: number;
   coins: number;
 
@@ -56,6 +65,7 @@ export const STARTING_COINS = 1000;
 
 export function emptyProfile(): PlayerProfile {
   return {
+    version: PROFILE_VERSION,
     xp: 0,
     coins: STARTING_COINS,
     matchesPlayed: 0,
@@ -78,6 +88,22 @@ export function emptyProfile(): PlayerProfile {
     selectedAvatar: 'djed',
     giftsSent: 0,
   };
+}
+
+/**
+ * A stored profile of any age, as this app understands it: the fields it
+ * knows merged over an empty profile (so a record written by an older app
+ * gains every newer field with its default instead of arriving undefined),
+ * the version stamped. Anything that is not an object is a fresh profile.
+ * Migrations that change a field's meaning go here, keyed on `version`.
+ */
+export function migrateProfile(raw: unknown): PlayerProfile {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return emptyProfile();
+  const stored = raw as Partial<PlayerProfile> & { version?: unknown };
+  const version = typeof stored.version === 'number' ? stored.version : 1;
+  const merged: PlayerProfile = { ...emptyProfile(), ...stored, version: Math.max(version, PROFILE_VERSION) };
+  // 1 -> 2: nothing changed its meaning; the field itself is the migration.
+  return merged;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +181,22 @@ export interface DealOutcome {
   zvanjaCalled: number;
   belaCalled: boolean;
   valat: boolean;
+  /**
+   * Učenje: the app found and announced the zvanja for the player, so they
+   * still count in the statistics but earn no XP (1.6.0). Lagana and Prava
+   * bela, where the player has to spot them, pay as before.
+   */
+  autoZvanja?: boolean;
+}
+
+/** A shorter match pays less: 501 is about half the deals of 1001. */
+export const MATCH_LENGTH_FACTOR: Readonly<Record<number, number>> = { 501: 0.6, 701: 0.8, 1001: 1 };
+
+export interface MatchOptions {
+  /** The match target (501, 701, 1001); anything else pays as 1001. */
+  target?: number;
+  /** Today (isoDay): the quests roll over first, so a match past midnight counts for the new day. */
+  today?: string;
 }
 
 export interface Award {
@@ -183,7 +225,9 @@ function award(
 export function applyDealOutcome(
   profile: PlayerProfile,
   outcome: DealOutcome,
+  today?: string,
 ): { profile: PlayerProfile; award: Award } {
+  if (today) profile = ensureQuests(profile, today);
   let xp = XP.dealPlayed;
   let coins = 0;
   const reasons: string[] = ['dealPlayed'];
@@ -193,7 +237,7 @@ export function applyDealOutcome(
     coins += COINS.dealWon;
     reasons.push('dealWon');
   }
-  if (outcome.zvanjaCalled > 0) {
+  if (outcome.zvanjaCalled > 0 && !outcome.autoZvanja) {
     xp += XP.perZvanje * outcome.zvanjaCalled;
     reasons.push('zvanja');
   }
@@ -224,16 +268,19 @@ export function applyDealOutcome(
 export function applyMatchOutcome(
   profile: PlayerProfile,
   won: boolean,
+  opts: MatchOptions = {},
 ): { profile: PlayerProfile; award: Award } {
+  if (opts.today) profile = ensureQuests(profile, opts.today);
   const stats: PlayerProfile = {
     ...profile,
     matchesPlayed: profile.matchesPlayed + 1,
     matchesWon: profile.matchesWon + (won ? 1 : 0),
   };
+  const factor = MATCH_LENGTH_FACTOR[opts.target ?? 1001] ?? 1;
   const result = award(
     stats,
-    won ? XP.matchWon : XP.matchLost,
-    won ? COINS.matchWon : COINS.matchLost,
+    Math.round((won ? XP.matchWon : XP.matchLost) * factor),
+    Math.round((won ? COINS.matchWon : COINS.matchLost) * factor),
     [won ? 'matchWon' : 'matchLost'],
   );
   return {
@@ -277,34 +324,35 @@ export interface DailyClaim {
   profile: PlayerProfile;
   coins: number;
   streakDays: number;
-  /** True when a missed day reset the streak back to 1. */
-  streakBroken: boolean;
+  /** True when a day was missed: the streak did not grow, and pays its last day again. */
+  streakPaused: boolean;
 }
 
 /**
  * What claiming today WOULD pay — the only number the lobby may advertise.
- * A broken streak restarts at day 1, so the banner must not promise the
- * continued-streak amount.
+ * A missed day PAUSES the streak (1.6.0): it neither grows nor falls back to
+ * day 1, and today pays the same day again. Nobody loses a week's climb to
+ * one evening away, and the banner never promises the grown amount.
  */
 export function previewDaily(
   profile: PlayerProfile,
   today: string,
 ): { coins: number; streakDays: number } {
   const continued = profile.lastBonusDay === previousDay(today);
-  const streakDays = continued ? profile.streakDays + 1 : 1;
+  const streakDays = continued ? profile.streakDays + 1 : profile.lastBonusDay === null ? 1 : Math.max(1, profile.streakDays);
   return { coins: dailyBonusFor(streakDays), streakDays };
 }
 
 export function claimDaily(profile: PlayerProfile, today: string): DailyClaim {
   if (!canClaimDaily(profile, today)) {
-    return { profile, coins: 0, streakDays: profile.streakDays, streakBroken: false };
+    return { profile, coins: 0, streakDays: profile.streakDays, streakPaused: false };
   }
   const { coins, streakDays } = previewDaily(profile, today);
   return {
     profile: { ...profile, coins: profile.coins + coins, lastBonusDay: today, streakDays },
     coins,
     streakDays,
-    streakBroken: profile.lastBonusDay !== null && streakDays === 1,
+    streakPaused: profile.lastBonusDay !== null && profile.lastBonusDay !== previousDay(today),
   };
 }
 

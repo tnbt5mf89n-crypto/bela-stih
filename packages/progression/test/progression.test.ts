@@ -34,6 +34,10 @@ import {
   type Cosmetic,
   type DealOutcome,
   type PlayerProfile,
+  MATCH_LENGTH_FACTOR,
+  migrateProfile,
+  PROFILE_VERSION,
+  XP
 } from '@belot/progression';
 
 const deal = (over: Partial<DealOutcome> = {}): DealOutcome => ({
@@ -153,6 +157,64 @@ describe('match rewards', () => {
     expect(p.matchesPlayed).toBe(2);
     expect(p.matchesWon).toBe(1);
   });
+
+  it('pays a shorter match less: 501 is 0.6 of 1001, 701 is 0.8, anything unknown is whole', () => {
+    const full = applyMatchOutcome(emptyProfile(), true).award;
+    const short = applyMatchOutcome(emptyProfile(), true, { target: 501 }).award;
+    const mid = applyMatchOutcome(emptyProfile(), true, { target: 701 }).award;
+    expect(short.coins).toBe(Math.round(full.coins * MATCH_LENGTH_FACTOR[501]!));
+    expect(short.xp).toBe(Math.round(full.xp * MATCH_LENGTH_FACTOR[501]!));
+    expect(mid.coins).toBe(Math.round(full.coins * 0.8));
+    expect(applyMatchOutcome(emptyProfile(), true, { target: 1001 }).award).toEqual(full);
+    expect(applyMatchOutcome(emptyProfile(), true, { target: 999 }).award).toEqual(full);
+    // A lost short match still pays something.
+    expect(applyMatchOutcome(emptyProfile(), false, { target: 501 }).award.coins).toBeGreaterThan(0);
+  });
+
+  it('rolls the quests over first when told the day, so a match past midnight counts for the new day', () => {
+    const p = ensureQuests(emptyProfile(), '2026-03-01');
+    const after = applyMatchOutcome(p, true, { today: '2026-03-02' }).profile;
+    expect(after.questDay).toBe('2026-03-02');
+    const dealAfter = applyDealOutcome(p, deal({ won: true }), '2026-03-02').profile;
+    expect(dealAfter.questDay).toBe('2026-03-02');
+    // Without a day nothing rolls (the callers that never knew the day behave as before).
+    expect(applyMatchOutcome(p, true).profile.questDay).toBe('2026-03-01');
+  });
+});
+
+describe('zvanja the app announced for the player', () => {
+  it('count in the statistics but earn no XP', () => {
+    const own = applyDealOutcome(emptyProfile(), deal({ won: false, zvanjaCalled: 2 }));
+    const auto = applyDealOutcome(emptyProfile(), deal({ won: false, zvanjaCalled: 2, autoZvanja: true }));
+    expect(own.award.xp - auto.award.xp).toBe(2 * XP.perZvanje);
+    expect(own.award.reasons).toContain('zvanja');
+    expect(auto.award.reasons).not.toContain('zvanja');
+    expect(auto.profile.zvanjaCalled).toBe(2);
+  });
+});
+
+describe('the stored profile', () => {
+  it('is stamped with its version, and an old record is brought up whole', () => {
+    expect(emptyProfile().version).toBe(PROFILE_VERSION);
+    // A 1.5.x profile: no version, every field it had then.
+    const old = { ...emptyProfile(), xp: 1234, coins: 5678, streakDays: 4, ownedAvatars: ['djed', 'baka', 'brko'] } as Partial<PlayerProfile> & { version?: number };
+    delete old.version;
+    const up = migrateProfile(JSON.parse(JSON.stringify(old)));
+    expect(up.version).toBe(PROFILE_VERSION);
+    expect(up.xp).toBe(1234);
+    expect(up.coins).toBe(5678);
+    expect(up.streakDays).toBe(4);
+    expect(up.ownedAvatars).toEqual(['djed', 'baka', 'brko']);
+    // A field this app added since is there with its default.
+    expect(up.giftsSent).toBe(0);
+  });
+
+  it('never cuts a newer record down, and treats junk as a fresh profile', () => {
+    const newer = migrateProfile({ ...emptyProfile(), version: PROFILE_VERSION + 1, coins: 9 });
+    expect(newer.version).toBe(PROFILE_VERSION + 1);
+    expect(newer.coins).toBe(9);
+    for (const junk of [null, undefined, 3, 'x', []]) expect(migrateProfile(junk)).toEqual(emptyProfile());
+  });
 });
 
 /** Coins are earned, never staked — nothing may ever take them at the table. */
@@ -198,18 +260,26 @@ describe('daily bonus', () => {
     expect(paid).toEqual([DAILY_BONUS[0], DAILY_BONUS[1], DAILY_BONUS[2]]);
   });
 
-  it('resets the streak after a missed day', () => {
+  it('pauses the streak after a missed day: it neither grows nor falls back, and pays its last day again', () => {
     let p = claimDaily(emptyProfile(), '2026-03-01').profile;
     p = claimDaily(p, '2026-03-02').profile;
     const skipped = claimDaily(p, '2026-03-05');
-    expect(skipped.streakBroken).toBe(true);
-    expect(skipped.streakDays).toBe(1);
+    expect(skipped.streakPaused).toBe(true);
+    expect(skipped.streakDays).toBe(2);
+    expect(skipped.coins).toBe(DAILY_BONUS[1]);
+    // The day after, it climbs on from where it stood.
+    const resumed = claimDaily(skipped.profile, '2026-03-06');
+    expect(resumed.streakPaused).toBe(false);
+    expect(resumed.streakDays).toBe(3);
+    expect(resumed.coins).toBe(DAILY_BONUS[2]);
+    // The first claim ever is day 1, not a pause.
+    expect(claimDaily(emptyProfile(), '2026-03-09').streakPaused).toBe(false);
   });
 
   it('crosses month boundaries correctly', () => {
     const p = claimDaily(emptyProfile(), '2026-02-28').profile;
     const next = claimDaily(p, '2026-03-01');
-    expect(next.streakBroken).toBe(false);
+    expect(next.streakPaused).toBe(false);
     expect(next.streakDays).toBe(2);
   });
 
@@ -403,9 +473,12 @@ describe('previewDaily', () => {
     expect(previewDaily(started, '2026-03-02')).toEqual({ coins: 150, streakDays: 2 });
     expect(claimDaily(started, '2026-03-02').coins).toBe(150);
 
-    // A missed day restarts at day 1 — the banner must not promise 150.
+    // A missed day pauses at day 1 (the streak stood at 1): 100 again, and the banner must not promise 150.
     expect(previewDaily(started, '2026-03-04')).toEqual({ coins: 100, streakDays: 1 });
     expect(claimDaily(started, '2026-03-04').coins).toBe(100);
+    // Paused higher up, it promises exactly the day it stands on.
+    const day3 = claimDaily(claimDaily(started, '2026-03-02').profile, '2026-03-03').profile;
+    expect(previewDaily(day3, '2026-03-10')).toEqual({ coins: DAILY_BONUS[2], streakDays: 3 });
   });
 });
 

@@ -4,7 +4,7 @@ import { MODE_CONFIG } from './playMode';
 import { Table } from '@belot/table';
 import type { BotLevel } from '@belot/bots';
 import { Lang } from '@belot/i18n';
-import { spendOnGift, type Award, type GiftId, type PlayerProfile } from '@belot/progression';
+import { spendOnGift, type Award, type GiftId, type PlayerProfile, isoDay } from '@belot/progression';
 import { AnchorMap } from './anim/AnchorRegistry';
 import { FxBus } from './anim/FxBus';
 import { useDirector } from './anim/useDirector';
@@ -78,6 +78,8 @@ export function useGame(
   const table = tableRef.current;
 
   const profileRef = useRef<PlayerProfile>(loadProfile());
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const tally = useRef(emptyTally());
   const [banner, setBanner] = useState<Award | null>(null);
   // Whose move is being animated: the seat of every event as it starts,
@@ -160,6 +162,9 @@ export function useGame(
         mySeat: HUMAN,
         silent: flushed,
         reduced: motionRef.current === 'reduced',
+        // Offline: Učenje spots the zvanja for the player; every match plays to 1001.
+        autoZvanja: settingsRef.current.difficulty === 'learn',
+        today: isoDay(new Date()),
       });
       if (r.profile !== profileRef.current) {
         profileRef.current = r.profile;

@@ -240,6 +240,8 @@ export function useNetGame(settings: Settings) {
   const voiceEchoRef = useRef<((echo: VoiceEcho) => void) | null>(null);
   const voiceHeardRef = useRef<((id: number, by: Seat) => void) | null>(null);
   const [mode, setMode] = useState<PlayMode>('easy');
+  const modeRef = useRef<PlayMode>('easy');
+  modeRef.current = mode;
   const [hostSeat, setHostSeat] = useState<Seat | null>(null);
   const [series, setSeries] = useState<[number, number]>([0, 0]);
   const [matchNumber, setMatchNumber] = useState(0);
@@ -267,6 +269,8 @@ export function useNetGame(settings: Settings) {
   const [nextVotes, setNextVotes] = useState<Seat[]>([]);
   const [turnSeconds, setTurnSeconds] = useState(30);
   const [target, setTarget] = useState(1001);
+  const targetRef = useRef(1001);
+  targetRef.current = target;
   const [isPrivate, setIsPrivate] = useState(false);
   // Once this room has been a table, a dropped connection keeps the table on
   // screen while the hook gets back into the seat - not the lobby, which is
@@ -351,6 +355,9 @@ export function useNetGame(settings: Settings) {
         mySeat: mine,
         silent: flushed,
         reduced: motionRef.current === 'reduced',
+        autoZvanja: modeRef.current === 'learn',
+        target: targetRef.current,
+        today: isoDay(new Date()),
       });
       if (r.profile !== profileRef.current) {
         profileRef.current = r.profile;

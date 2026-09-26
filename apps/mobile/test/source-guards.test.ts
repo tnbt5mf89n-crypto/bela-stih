@@ -726,9 +726,10 @@ describe('table gifts', () => {
       statBela: /^String\(profile\.belaCalled\)$/,
       statValat: /^String\(profile\.valats\)$/,
       statBestDeal: /^String\(profile\.bestDealScore\)$/,
+      statGifts: /^String\(profile\.giftsSent\)$/,
     };
     const rows = [...p.matchAll(/\[ui\.(stat\w+), ([^\]]+)\],/g)].map((m) => [m[1]!, m[2]!] as const);
-    expect(rows.length).toBe(7);
+    expect(rows.length).toBe(Object.keys(FIELD).length);
     for (const [k, v] of rows) {
       expect(FIELD[k], k).toBeDefined();
       expect(v, k).toMatch(FIELD[k]!);

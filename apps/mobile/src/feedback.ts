@@ -113,6 +113,12 @@ export interface ProcessOptions {
    * and haptics stay quiet.
    */
   silent?: boolean;
+  /** Učenje announces zvanja for the player: they count, but earn no XP (progression). */
+  autoZvanja?: boolean;
+  /** The match target (501/701/1001): a shorter match pays less. */
+  target?: number;
+  /** Today (isoDay); the quests roll over before an outcome is counted. */
+  today?: string;
   /** Reduce-motion: the beats are short, so the long sounds play quick. */
   reduced?: boolean;
 }
@@ -124,6 +130,9 @@ export function processEvents({
   mySeat,
   silent = false,
   reduced = false,
+  autoZvanja = false,
+  target,
+  today,
 }: ProcessOptions): { profile: PlayerProfile; award: Award | null } {
   const sfx = (name: Sfx, opts?: PlayOptions) => {
     if (silent) return;
@@ -232,13 +241,18 @@ export function processEvents({
           sfx('stiglja');
           buzz(e.result.valatTeam === mine ? 'stigljaUs' : 'stigljaThem');
         }
-        const r = applyDealOutcome(next, {
-          won,
-          points: e.result.finalScore[mine],
-          zvanjaCalled: tally.zvanja,
-          belaCalled: tally.bela,
-          valat: e.result.valatTeam === mine,
-        });
+        const r = applyDealOutcome(
+          next,
+          {
+            won,
+            points: e.result.finalScore[mine],
+            zvanjaCalled: tally.zvanja,
+            belaCalled: tally.bela,
+            valat: e.result.valatTeam === mine,
+            autoZvanja,
+          },
+          today,
+        );
         next = r.profile;
         earned = mergeAward(earned, r.award);
         break;
@@ -248,7 +262,7 @@ export function processEvents({
         // The fanfare is at the END of the beat (see `landingSound`); here
         // only the outcome is applied.
         const won = e.winner === teamOf(mySeat);
-        const r = applyMatchOutcome(next, won);
+        const r = applyMatchOutcome(next, won, { target, today });
         next = r.profile;
         earned = mergeAward(earned, r.award);
         break;

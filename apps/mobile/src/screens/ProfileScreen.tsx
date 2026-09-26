@@ -57,6 +57,7 @@ export function ProfileScreen({
     [ui.statBela, String(profile.belaCalled)],
     [ui.statValat, String(profile.valats)],
     [ui.statBestDeal, String(profile.bestDealScore)],
+    [ui.statGifts, String(profile.giftsSent)],
   ];
 
   // The faces this player owns, to wear one; more are in the shop.

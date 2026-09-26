@@ -6,7 +6,8 @@ import type { Lang } from '@belot/i18n';
  * chairs nobody sat in. The same four characters everywhere, so a bot reads as
  * someone at the table rather than as a missing player.
  */
-export const BOT_AVATARS: readonly string[] = ['djed', 'brko', 'teta', 'kapetan'];
+// Never the captain: a level-15, 2000-coin face on a bot made the purchase feel cheap.
+export const BOT_AVATARS: readonly string[] = ['djed', 'brko', 'teta', 'baka'];
 
 /**
  * A bot's face and name. Online, a chair nobody ever sat in used to show a

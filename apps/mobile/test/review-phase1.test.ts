@@ -47,7 +47,7 @@ describe('table codes friends can read out', () => {
 
 describe('bots online look like bots offline', () => {
   it('wear a character and its name, in the player-s language', () => {
-    expect(botIdentity(new Lang('hr'), 3)).toEqual({ name: 'Kapetan', avatar: 'kapetan' });
+    expect(botIdentity(new Lang('hr'), 3)).toEqual({ name: 'Baka', avatar: 'baka' });
     expect(botIdentity(new Lang('sr-Cyrl'), 1).name).toBe('Брка');
     expect(botIdentity(new Lang('en'), 2).name).toBe('Auntie');
     expect(BOT_AVATARS).toHaveLength(4);
