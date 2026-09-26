@@ -78,7 +78,9 @@ export const SCENARIOS: Scenario[] = [
   // The house-rule knobs, so a change in a dormant path is seen too.
   { name: 'knobs-kontra-tiecancel-1001', seed: 2001, config: { allowKontra: true, declarationTieCancels: true, matchTarget: 1001 }, policy: 'random' },
   { name: 'knobs-french-701', seed: 2002, config: { forcedOvertrumpOverPartner: false, contractTieSucceeds: true, keepBelaOnFailedContract: false, matchTarget: 701 }, policy: 'random' },
-  // The remaining knobs: automatic zvanja and bela, kontra over everything and sweeping, a free dealer, other bonuses.
+  // The remaining knobs. Seed 2003 reaches automatic zvanja, kontra and rekontra over everything (the zvanja
+  // too), a made kontra taking the whole table, and no last-trick bonus. It never reaches automatic bela, a
+  // free dealer's redeal or a valat: bela.test.ts, state.test.ts and scoring.test.ts pin those.
   { name: 'knobs-auto-scope-701', seed: 2003, config: { declarationMode: 'auto', belaMode: 'auto', allowKontra: true, kontraScope: 'all', kontraSuccessSweeps: true, dealerMustCall: false, lastTrickBonus: 0, valatBonus: 100, matchTarget: 701 }, policy: 'random' },
   // Seed 4017 was searched for: under the tie-cancel house rule, a deal where both
   // pairs announce equal best zvanja and nobody scores them. The test asserts it stays one.
@@ -221,7 +223,8 @@ export function runScenario(sc: Scenario): ScenarioReport {
       // wrong (the first three cards): the hit, the miss and the skip all recorded.
       if (action.type === 'DECLARE_ANNOUNCE' && !action.cards) {
         const seat = action.seat;
-        const hand = table.view(seat).hand;
+        // The engine's hand, not the view's: the order a seat is shown its cards in is not the rules.
+        const hand = table.state.hands[seat]!.slice();
         const held = detectDeclarations(hand, seat);
         const wrong = held.length === 0 || rng() < 1 / 3;
         action = { type: 'DECLARE_ANNOUNCE', seat, cards: wrong ? hand.slice(0, 3) : held[Math.floor(rng() * held.length)]!.cards };
@@ -230,9 +233,8 @@ export function runScenario(sc: Scenario): ScenarioReport {
       // which the zvanja round asks each seat in turn (legal is DECLARE_* then).
       if (sc.policy === 'renons' && !renonsDone && table.phase === 'PLAY' && legal.some((x) => x.type === 'PLAY_CARD')) {
         const seat = table.actor() as Seat;
-        const view = table.view(seat);
         const legalIds = new Set(legal.filter((x) => x.type === 'PLAY_CARD').map((x) => cardId((x as { card: PublicView['hand'][number] }).card)));
-        const illegal = view.hand.find((c) => !legalIds.has(cardId(c)));
+        const illegal = table.state.hands[seat]!.find((c) => !legalIds.has(cardId(c)));
         if (illegal) {
           action = { type: 'PLAY_CARD', seat, card: illegal };
           renonsDone = true;

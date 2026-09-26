@@ -134,6 +134,12 @@ export interface SeatMeta {
    * or report. (A dropped player a bot stands in for is not one of these.)
    */
   pureBot?: boolean;
+  /**
+   * A person whose app sent an install ID (1.6.0), so a block of them can be
+   * kept. An older app's seat has none: a block would only hide them at this
+   * table, while the button promises it for good, so it is not offered.
+   */
+  blockable?: boolean;
 }
 
 export interface TableScreenProps {
@@ -807,9 +813,15 @@ export function TableScreen(props: TableScreenProps) {
       connected: true,
     };
 
-  /** A puck that opens the gift picker (for its seat, or the table for mine). */
+  /**
+   * A puck that opens the gift picker (for its seat, or the table for mine).
+   * With gifts switched off (the server's switch), another person's puck still
+   * opens the player view: hiding, blocking, muting and reporting are not
+   * gifts. Decided from the props, not `moderatable`, so that leaving never
+   * swaps a puck between wrapped and bare, which would remount it.
+   */
   const giftPress = (s: Seat, child: ReactElement) => {
-    if (!onGift) return child;
+    if (!onGift && (s === mySeat || !onHide || !onReport || seatMeta?.[s]?.pureBot)) return child;
     const id = gifts?.[s] ?? null;
     return (
       <PressScale
@@ -1542,6 +1554,7 @@ export function TableScreen(props: TableScreenProps) {
     <>
       <Button
         label={lang.s.declareMarked}
+        testID="declare-announce"
         tone={marked.length >= 3 && markingIsZvanje ? 'strong' : 'plain'}
         compact={land}
         onPress={() => {
@@ -1551,6 +1564,7 @@ export function TableScreen(props: TableScreenProps) {
       />
       <Button
         label={lang.s.noneToDeclare}
+        testID="declare-skip"
         tone="plain"
         compact={land}
         onPress={() => answer({ type: 'DECLARE_SKIP', seat: mySeat })}
@@ -1738,6 +1752,10 @@ export function TableScreen(props: TableScreenProps) {
     <Animated.View
       style={[styles.resultBackdrop, lostMatch && styles.resultBackdropLost]}
       pointerEvents="box-none"
+      // Under "Pregled ruke" the sheet steps out for a screen reader, as the
+      // table does (the layer below): the review's accessibilityViewIsModal is
+      // iOS-only, and TalkBack and the web reach whatever is not hidden outright.
+      aria-hidden={reviewing}
       entering={reduced ? undefined : FadeIn.duration(220)}
     >
       <DealResult
@@ -1799,6 +1817,11 @@ export function TableScreen(props: TableScreenProps) {
       <SafeAreaView style={[styles.safe, { backgroundColor: baize.page }]} edges={['top', 'bottom', 'left', 'right']}>
         {/* A rotation or a window resize moves everything at once. */}
         <View style={[styles.root, land && styles.rootLand, short && styles.rootShort]} onLayout={() => anchors.bump()}>
+          {/* The table, in one layer under the overlays after it, so that "Pregled
+              ruke" can hide all of it from a screen reader at once. Never
+              flattened: flipping aria-hidden on a view Fabric had flattened
+              would create it, and move the whole table under a new parent. */}
+          <View collapsable={false} style={[styles.layer, land && styles.layerLand, short && styles.layerShort]} aria-hidden={reviewing}>
           {land ? (
             // Turned sideways there is no vertical room to stack chrome above
             // and below the felt, so everything that is not the table itself
@@ -1930,6 +1953,7 @@ export function TableScreen(props: TableScreenProps) {
               )}
             </>
           )}
+          </View>
 
           {resultSheet}
           {reviewing && view.history && (
@@ -1949,8 +1973,10 @@ export function TableScreen(props: TableScreenProps) {
           <EffectsOverlay bus={fxBus} />
           {__DEV__ && probe && <PerfProbe />}
 
-          {/* The gift picker: an overlay, so opening it moves no row of the table. */}
-          {giftTarget !== null && onGift && (
+          {/* The gift picker: an overlay, so opening it moves no row of the table.
+              Without gifts it is only ever the player view, and one someone is
+              in the middle of stays when the switch flips. */}
+          {giftTarget !== null && (onGift || moderating) && (
             <GiftPicker
               lang={lang}
               target={giftTarget}
@@ -1970,7 +1996,7 @@ export function TableScreen(props: TableScreenProps) {
                         onHide(who, !was);
                       },
                       onReport: () => onReport(giftTarget),
-                      ...(onBlock
+                      ...(onBlock && seatMeta?.[giftTarget]?.blockable
                         ? {
                             onBlock: () => {
                               const who = giftTarget;
@@ -2003,7 +2029,7 @@ export function TableScreen(props: TableScreenProps) {
                 // Belt and braces: the grid is gone by now whenever a gift
                 // cannot be sent, and a send that slipped through anyway must
                 // not spend coins the table would refuse.
-                if (giftable) onGift(id, to);
+                if (giftable) onGift?.(id, to);
               }}
             />
           )}
@@ -2745,17 +2771,25 @@ const FanCard = memo(
        <Animated.View style={motion}>
         <Pressable
           ref={ref}
-          disabled={disabled}
+          // Touch: only a card that takes no tap is disabled; an illegal card on
+          // my turn still takes one (it shakes and says why). `undefined`, not
+          // `false`: RN 0.86's Pressable writes any non-null `disabled` over the
+          // accessibilityState below, and every card on my turn read as playable.
+          disabled={disabled || undefined}
           onPress={press}
           onLongPress={onLongPress}
           delayLongPress={500}
           // Vertical only: horizontal slop would overlap the neighbouring
           // card in touch space and make mis-taps MORE likely, not less.
           hitSlop={{ top: 12, bottom: 8 }}
-          // TalkBack (1.6.0): each card is a button that says its name and whether it may be played now.
+          // TalkBack (1.6.0): each card is a button that says its name ("dečko
+          // srce": the rank word, not the genitive a zvanje is said in) and
+          // whether it may be played now - an illegal card on my turn may not.
+          // (Android disables the native view for that too, and touch then
+          // reaches this Pressable only through the card face drawn inside it.)
           accessibilityRole="button"
-          accessibilityLabel={cardLang().s.cardOf(cardLang().s.rankName[card.rank], cardLang().suitName(card.suit))}
-          accessibilityState={{ disabled }}
+          accessibilityLabel={cardLang().cardName(card)}
+          accessibilityState={{ disabled: disabled || dimmed }}
           testID={`card-${id}`}
         >
           <PlayingCard
@@ -3409,9 +3443,14 @@ function Pair({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.feltDeep },
-  root: { flex: 1, padding: 12, gap: 8 },
+  // The table's box: its padding, and the overlays (the sheet, the review, the
+  // sprites, the pickers) laid over all of it.
+  root: { flex: 1, padding: 12 },
+  rootLand: { paddingVertical: 6 },
+  // The table itself, its rows and their gaps, in the one layer under them.
+  layer: { flex: 1, gap: 8 },
   // Landscape: two narrow rails of chrome with the table between them.
-  rootLand: { flexDirection: 'row', paddingVertical: 6, gap: LAND_GAP },
+  layerLand: { flexDirection: 'row', gap: LAND_GAP },
   rail: { gap: 6, alignItems: 'center' },
   railRight: { justifyContent: 'flex-end' },
   // The right rail's free gap, and the emote box's home: stretched, because the
@@ -3479,8 +3518,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   pauseButtonSlim: { width: 30, height: 30 },
-  // "Ready, waiting for the others", where the next-deal button was.
-  nextReady: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 2, minHeight: 44 },
+  // "Ready, waiting for the others", where the next-deal button was: its own
+  // width, growing into what its line leaves. flex: 1's zero basis squeezed
+  // "Čekamo ostale" into the ~80 dp the review and leave buttons left it.
+  nextReady: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', gap: 2, minHeight: 44 },
   nextReadyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   nextReadyText: { color: theme.accent, fontSize: 14, fontFamily: font.medium },
   // The series between the pills: small, so a 320 dp strip keeps its one line.
@@ -3668,7 +3709,8 @@ const styles = StyleSheet.create({
   callChipTextLand: { ...type.caption },
   callChipLand: { paddingHorizontal: 8, alignSelf: 'stretch' },
   // Portrait's short column: metrics' SHORT_CHROME is these numbers.
-  rootShort: { paddingVertical: 4, gap: 4 },
+  rootShort: { paddingVertical: 4 },
+  layerShort: { gap: 4 },
   profileBarSlim: { paddingVertical: 2 },
   leaveSlim: { paddingVertical: 4 },
   teamPillSlim: { paddingVertical: 1 },
@@ -3914,6 +3956,9 @@ const styles = StyleSheet.create({
   },
   sheetLevelText: { color: theme.accent, ...type.sub, fontFamily: font.bold },
   sheetFoot: { gap: space.sm, alignItems: 'center', marginTop: space.sm },
-  resultButtons: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: space.sm },
+  // A deal's three answers (next with its countdown, "Pregled ruke", leave)
+  // are wider than a 360 dp sheet in Croatian and Serbian: they wrap to a
+  // second line instead of running off both edges. (`gap` spaces the lines.)
+  resultButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: space.sm },
   resultButtonsPinned: { marginTop: 0, alignItems: 'center' },
 });

@@ -19,7 +19,15 @@ let enabled = true;
 // app says which platform it is on; this module stays free of react-native
 // so the tests can load it in node.
 let android = false;
-/** Settings' "Jačina vibracije": `soft` plays every step one notch lighter. */
+/**
+ * Settings' "Jačina vibracije": `soft` plays every impact one notch lighter
+ * (Soft is the floor). Notifications and selection ticks play as designed:
+ * iOS's generators for them take no intensity, and the web's patterns are
+ * fixed. On Android a notification's constant (CONFIRM, REJECT, CLOCK_TICK)
+ * has no lighter one that says the same thing, and the tick's lighter
+ * SEGMENT_FREQUENT_TICK may not vibrate at all on a phone that cannot go
+ * that soft.
+ */
 export type HapticStrength = 'soft' | 'full';
 let strength: HapticStrength = 'full';
 
@@ -110,7 +118,7 @@ export const PATTERNS = {
 
 export type Pattern = keyof typeof PATTERNS;
 
-/** One notch lighter, for the soft setting. */
+/** One notch lighter, for the soft setting: impacts only (see HapticStrength). */
 const SOFTER: Record<Haptics.ImpactFeedbackStyle, Haptics.ImpactFeedbackStyle> = {
   [I.Heavy]: I.Medium,
   [I.Rigid]: I.Medium,

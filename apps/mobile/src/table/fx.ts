@@ -4,7 +4,7 @@ import type { TableEvent } from '@belot/table';
 import type { Lang } from '@belot/i18n';
 import type { AnchorMap } from '../anim/AnchorRegistry';
 import type { XY } from '../anim/FxBus';
-import { timingsFor } from '../anim/director';
+import { TEMPO_FACTOR, timingsFor, type Tempo } from '../anim/director';
 import { anchorId, metaId, type FxBus } from '../anim/FxBus';
 import {
   BACK_SCALE,
@@ -34,8 +34,9 @@ import { giftBadgeBox } from './metrics';
  *
  * Every sprite carries the director's current `speed` and the measured card
  * width at its destination. The speed keeps a sprite inside the beat it fills
- * when the director runs at half pace with a batch waiting; the width keeps a
- * flight the size of the card it becomes, so nothing pops on landing.
+ * when the director runs at half pace with a batch waiting, or at the player's
+ * "Tempo igre"; the width keeps a flight the size of the card it becomes, so
+ * nothing pops on landing.
  */
 
 export interface FxSpawnerOptions {
@@ -46,6 +47,13 @@ export interface FxSpawnerOptions {
   mySeat: () => Seat | null;
   /** Reduce-motion: fades in place of flights, and no burst or shake. */
   reduced?: () => boolean;
+  /**
+   * Settings' "Tempo igre", read at every spawn. The director stretches or
+   * tightens its beats by it (timingsFor), so every sprite must too, or the
+   * deal's backs fade before a slow deal's cards mount and still fly over a
+   * fast one's. Without it, the normal tempo.
+   */
+  tempo?: () => Tempo;
   /**
    * The presentation view as it stands when an event STARTS — before the
    * director's start patch. The trick sweep reads the four cards on the felt
@@ -137,6 +145,14 @@ export function makeFxSpawner(opts: FxSpawnerOptions) {
   const isReduced = opts.reduced ?? (() => false);
   /** The beats as the policy in force paces them: a sprite fills the beat it will actually get. */
   const beats = () => timingsFor(isReduced() ? 'reduced' : 'full');
+  /**
+   * The pace a sprite runs at: the director's own (1, or 0.5 with a batch
+   * waiting) times the tempo's factor. Applied once, where the director's
+   * pace comes in (the return below), and `beats()` above stays at the
+   * normal tempo: a beat times its speed is then the beat the director really
+   * runs, never stretched twice.
+   */
+  const paced = (pace: number): number => pace * (TEMPO_FACTOR[opts.tempo?.() ?? 'normal'] ?? 1);
 
   /** The width of a card sitting in this seat's slot, or the fallback before the first layout. */
   const slotW = (seat: Seat): number => anchors.rect(anchorId.slot(seat))?.w ?? FALLBACK_CARD_W;
@@ -430,5 +446,10 @@ export function makeFxSpawner(opts: FxSpawnerOptions) {
     }
   };
 
-  return { start, end };
+  // The director hands over its own pace; every sprite above runs at that
+  // pace with the tempo folded in (see `paced`).
+  return {
+    start: (e: TableEvent, pace = 1): void => start(e, paced(pace)),
+    end: (e: TableEvent, pace = 1): void => end(e, paced(pace)),
+  };
 }

@@ -156,6 +156,13 @@ describe('valat', () => {
     expect(r.finalScore).toEqual([0, 252]);
   });
 
+  /** The house-rule knob: every other valat here pays the default, and the golden scenario that sets it never sweeps. */
+  it('pays the bonus the table set, not a fixed 90', () => {
+    const r = score({ tricks: SWEEP_BY_TEAM_1, callerTeam: 1, config: { valatBonus: 100 } });
+    expect(r.valatBonus).toEqual([0, 100]);
+    expect(r.finalScore).toEqual([0, 262]);
+  });
+
   /** The sweep can belong to the DEFENDING team when a contract collapses. */
   it('pays out to the defenders when they are the ones who swept', () => {
     const r = score({ tricks: SWEEP_BY_TEAM_1, callerTeam: 0 });

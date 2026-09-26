@@ -20,7 +20,7 @@ export interface ReportFacts {
   code: string;
   at: string;
   version: string;
-  /** The reported seat's install ID (identity.ts), when its app gave one: the handle a ban can use. */
+  /** The digest the table shows for the reported seat (identity.ts), when its app gave an ID: the handle a ban can use. */
   id?: string;
 }
 

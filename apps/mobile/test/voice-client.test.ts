@@ -150,8 +150,9 @@ describe('the app around it', () => {
 
   it("plays each clip at the game's volume, lets it go when it ends, the game sounds dipped meanwhile", () => {
     const p = src('voice/useVoicePlayback.ts');
-    // 1.6.0: at the voice volume, levelled by the sender's header; the receipt goes when the clip has ENDED.
-    expect(p).toMatch(/playback = playClip\(src\.uri, masterVolume\(\) \* voiceVolume\(\) \* gainForLoudness\(clip\.loudness\), \(\) => \{\s*onPlayedRef\.current\?\.\(clip\.id\);\s*stop\(\);\s*\}\);/);
+    // 1.6.0: at the voice volume, levelled by the sender's header; the receipt goes when the clip has ENDED,
+    // never for one the player could not play (voice-r1.test.ts runs both players).
+    expect(p).toMatch(/playback = playClip\(src\.uri, masterVolume\(\) \* voiceVolume\(\) \* gainForLoudness\(clip\.loudness\), \(heard\) => \{\s*if \(heard\) onPlayedRef\.current\?\.\(clip\.id\);\s*stop\(\);\s*\}\);/);
     expect(p).toMatch(/playback\?\.stop\(\);\s*src\?\.release\(\);/);
     // What a killed app left in the cache goes as the screen opens, before any clip can come.
     expect(p).toMatch(/useEffect\(\(\) => sweepVoiceFiles\(\), \[\]\);/);

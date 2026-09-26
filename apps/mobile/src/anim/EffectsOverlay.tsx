@@ -207,6 +207,13 @@ function Flight({
   const dist = Math.hypot(to.x - from.x, to.y - from.y);
   const arc = Math.min(40, dist * 0.08);
   const settleFrom = Math.max(0.5, 1 - 60 / Math.max(1, fx.duration));
+  // settleFrom is a fraction of the flight's time, but p (below) is eased
+  // progress, Easing.out(Easing.cubic): p = 1 - (1 - t)^3. So the settle
+  // starts where the easing has the card when the last 60 ms begin; set
+  // against p itself, the card peaked 55-100 ms in and spent two thirds of
+  // the flight settling. It must change if the easing does. The arc stays on
+  // p: x and y run on p too, so its top is the path's midpoint.
+  const settleP = 1 - Math.pow(1 - settleFrom, 3);
   const p = useSharedValue(0);
   useEffect(() => {
     p.value = withTiming(1, { duration: fx.duration, easing: Easing.out(Easing.cubic) });
@@ -226,7 +233,7 @@ function Flight({
             {
               scale:
                 (startScale + (1 - startScale) * p.value) *
-                (1 + 0.04 * (p.value < settleFrom ? p.value / settleFrom : 1 - (p.value - settleFrom) / (1 - settleFrom))),
+                (1 + 0.04 * (p.value < settleP ? p.value / settleP : 1 - (p.value - settleP) / (1 - settleP))),
             },
             { rotateZ: `${(1 - p.value) * tilt}deg` },
             // An opponent's card turns over: edge-on at the flip, where the

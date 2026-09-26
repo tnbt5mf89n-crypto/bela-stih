@@ -59,7 +59,7 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// The kill switch (config.ts): CONFIG_URL polled every minute, or CONFIG_JSON once.
+// The kill switch (config.ts): CONFIG_FILE (else CONFIG_URL) re-read every minute, or CONFIG_JSON once.
 startConfigPolling(process.env);
 
 const httpServer = createServer(app);

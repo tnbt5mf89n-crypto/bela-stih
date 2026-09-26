@@ -60,9 +60,12 @@ for the build it just made. Then fix forward.
 
 ## The kill switch: config.json
 
-`https://bela.yourdomain.com/config.json` is a static file caddy serves from
-`/opt/bela/deploy/site/config.json`; the game server re-reads it every minute
-(`CONFIG_URL`, apps/server/src/config.ts) and `/health` shows what it read:
+`/opt/bela/deploy/private/config.json` on the box. The game server re-reads it
+every minute (`CONFIG_FILE`, apps/server/src/config.ts; compose mounts
+`deploy/private` read-only into the game container alone) and `/health` shows
+what it read. It is not public: it lists banned installations, so caddy never
+serves it (`/config.json` is a 404), and the app reads the switches from
+`/health`, which counts the bans and names none:
 
 ```json
 { "v": 1, "minProto": 0, "maintenance": false, "voice": true,
@@ -74,13 +77,23 @@ for the build it just made. Then fix forward.
 - `voice`, `gifts`, `emotes` switch a feature off everywhere; `strangerClips`
   only at public tables (private tables keep voice).
 - `minProto` raises the oldest app admitted without a deploy (protocol.ts).
-- `banned` lists install IDs (32 hex digits, from a report) refused at the door.
+- `banned` lists installations refused at the door: the 32 hex digits a report
+  names, copied as they are (a table shows a digest of each app's install ID,
+  and the door compares digests).
 
-Edit it on the box (`nano /opt/bela/deploy/site/config.json`); within a minute
-`/health` reflects it. A deploy leaves the box's copy alone (the repo's file
-only seeds a new box), so a ban survives releases - and is lost with the box.
+Edit it on the box (`nano /opt/bela/deploy/private/config.json`); within a
+minute `/health` reflects it. A deploy leaves the box's copy alone (the repo's
+`deploy/private/config.json` only seeds a new box), so a ban survives
+releases - and is lost with the box. A box from before this layout kept the
+file in `deploy/site`, where caddy served it: a deploy moves that copy here,
+switches and bans with it, when `deploy/private` has none yet, and deletes
+any copy left in `deploy/site`. Never put one there: caddy would serve it to
+anyone.
 Every field is optional; a typo in one field falls back to that field's
-default, and a file that fails to parse changes nothing.
+default, and a file that fails to parse changes nothing (`/health` says
+`"lastError": "not valid JSON"`, never a line of the file). A rollback to a
+build from before `CONFIG_FILE` reads no file: it runs on the defaults, bans
+off, until you roll forward.
 
 ## Wire transcripts
 

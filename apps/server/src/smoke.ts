@@ -418,6 +418,16 @@ function selfTest(): boolean {
       },
     ],
     [
+      // The one breach only the history check sees: an opponent's card is caught by the generic
+      // checks too, but a card still in your own hand passes every other check.
+      'your own unplayed card shown as already played in the history',
+      () => {
+        const view = sampleView(mine, [2, 2, 8, 8]);
+        (view as unknown as { history: unknown }).history = { bids: [], tricks: [{ leader: 0, winner: 0, plays: [{ seat: 0, card: mine[0] }] }] };
+        return checkViewT(received(view), nothingPublic());
+      },
+    ],
+    [
       "an opponent's hand dressed up as a revealed zvanje",
       () => {
         const view = sampleView(mine, [2, 2, 8, 8]);

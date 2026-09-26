@@ -3,7 +3,7 @@ import { cardId, SEATS, type PublicView, type Seat } from '@belot/engine';
 import { Lang } from '@belot/i18n';
 import { Table, type TableEvent } from '@belot/table';
 import type { AnchorMap, AnchorRect } from '../src/anim/AnchorRegistry';
-import { DEFAULT_TIMINGS, REDUCED_TIMINGS } from '../src/anim/director';
+import { DEFAULT_TIMINGS, REDUCED_TIMINGS, timingsFor, type Tempo } from '../src/anim/director';
 import { anchorId, FxBus, metaId, type Fx } from '../src/anim/FxBus';
 import { fitHand } from '../src/table/geometry';
 import {
@@ -71,7 +71,7 @@ function fakeAnchors(withSlots = true): AnchorMap {
 }
 
 /** Every sprite a whole all-bot deal produces, tagged with the event that spawned it. */
-function spritesOfADeal(speed: number, anchors = fakeAnchors(), reduced = false) {
+function spritesOfADeal(speed: number, anchors = fakeAnchors(), reduced = false, tempo: Tempo = 'normal') {
   const table = new Table({ seed: 7, humanSeats: [] });
   const events = table.drainEvents();
   if (events.length < 30) throw new Error('hollow deal');
@@ -90,6 +90,7 @@ function spritesOfADeal(speed: number, anchors = fakeAnchors(), reduced = false)
     mySeat: () => 0,
     view: () => ({ ...base, currentTrick: trick }),
     reduced: () => reduced,
+    tempo: () => tempo,
   }).start;
   for (const e of events) {
     current = e.kind;
@@ -478,6 +479,63 @@ describe('reduce-motion sprites', () => {
         expect(fx.kind).not.toBe('badge'); // the hops are off
         // Nothing outlives the short beat plus its gap, fade tail included.
         expect(lifetimeOf(fx), `${fx.kind} spawned by ${kind}`).toBeLessThanOrEqual((beat.dur + beat.gap) * speed + 40);
+      }
+    }
+  });
+});
+
+describe('Tempo igre', () => {
+  // The director runs timingsFor(policy, tempo) and hands the spawner only its
+  // own pace (1, or 0.5 with a batch waiting): the spawner folds the tempo in,
+  // once. Without it, a slow deal's backs faded 340 ms before its cards
+  // mounted (an empty hand) and a fast one's still flew over them.
+  for (const tempo of ['slow', 'fast'] as const) {
+    for (const reduced of [false, true]) {
+      it(`${tempo}${reduced ? ', under reduce-motion' : ''}: every sprite fits the beat the director really runs`, () => {
+        const T = timingsFor(reduced ? 'reduced' : 'full', tempo);
+        for (const speed of [1, 0.5]) {
+          const sprites = spritesOfADeal(speed, fakeAnchors(), reduced, tempo);
+          expect(sprites.length).toBeGreaterThan(30);
+          for (const { kind, fx } of sprites) {
+            const beat = T[kind as keyof typeof T];
+            const at = `${fx.kind} spawned by ${kind} at speed ${speed}`;
+            expect(motionOf(fx), at).toBeLessThanOrEqual((beat.dur + beat.gap) * speed);
+            if (reduced) expect(lifetimeOf(fx), at).toBeLessThanOrEqual((beat.dur + beat.gap) * speed + 40);
+            // Committed to its slot at the beat's end: no second copy in the air then.
+            if (fx.kind === 'flight') expect(fx.duration, at).toBeLessThanOrEqual(T.cardPlayed.dur * speed);
+            // The dealer's D lands as the puck's own D appears, not before or after it.
+            if (fx.kind === 'badge' && fx.tone === undefined) expect(fx.duration, at).toBeCloseTo(beat.dur * speed, 0);
+            if (fx.kind !== 'deal') continue;
+            // Timed on the beat the director runs (up to its rounding): the
+            // tempo stretched once, not twice and not never.
+            expect(Math.abs(fx.beat * fx.speed - beat.dur * speed), at).toBeLessThanOrEqual(0.5);
+            if (reduced) continue;
+            // Every back has landed and holds when the cards mount at the
+            // beat's end, and is gone within the gap. No empty hand.
+            expect(motionOf(fx), at).toBeLessThanOrEqual(beat.dur * speed * DEAL_DONE_AT + 1);
+            expect(lifetimeOf(fx), at).toBeGreaterThanOrEqual(beat.dur * speed);
+            expect(lifetimeOf(fx), at).toBeLessThanOrEqual((beat.dur + beat.gap) * speed);
+          }
+        }
+      });
+    }
+  }
+
+  it('the end-of-beat stamps fit the gaps the tempo leaves them', () => {
+    const doubled: TableEvent = { kind: 'doubled', seat: 1, multiplier: 2 };
+    const called: TableEvent = { kind: 'bidCalled', seat: 1, suit: 'HEARTS' as never };
+    for (const tempo of ['slow', 'fast'] as const) {
+      const T = timingsFor('full', tempo);
+      for (const speed of [1, 0.5]) {
+        const bus = new FxBus();
+        const out: Fx[] = [];
+        bus.subscribe((fx) => out.push(fx));
+        const fx = makeFxSpawner({ anchors: fakeAnchors(), bus, lang: new Lang('hr'), mySeat: () => 0, view: () => null, tempo: () => tempo });
+        fx.end(called, speed);
+        fx.end(doubled, speed);
+        expect(out.map((f) => f.kind)).toEqual(['stamp', 'stamp']);
+        expect(motionOf(out[0]!), `${tempo} at speed ${speed}`).toBeLessThanOrEqual(T.bidCalled.gap * speed);
+        expect(motionOf(out[1]!), `${tempo} at speed ${speed}`).toBeLessThanOrEqual(T.doubled.gap * speed);
       }
     }
   });

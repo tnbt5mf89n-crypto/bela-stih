@@ -9,10 +9,10 @@ import type { TableEvent } from '@belot/table';
  * these functions advance it one event at a time. They are not a parallel game
  * model: everything they compute is either carried by the event itself
  * (dealer, trump, declarations, scores, played cards) or adopted verbatim from
- * the batch's authoritative `finalView` (my own hand at reveal moments). At the
- * end of every batch the director hard-replaces the whole view with
- * `finalView`, so any error here degrades to a one-frame pop, never to a
- * gameplay bug.
+ * the batch's authoritative `finalView` (my own hand at reveal moments, the
+ * scored deal's history). At the end of every batch the director
+ * hard-replaces the whole view with `finalView`, so any error here degrades
+ * to a one-frame pop, never to a gameplay bug.
  *
  * Intermediate views always carry `toAct: null` and `legalActions: []` — while
  * a drain is playing out, no prompt and no playable card can appear, by
@@ -269,6 +269,14 @@ export function applyEventEnd(
         dealProgress: null,
         // The engine rotates the dealer as part of scoring the deal.
         dealer: ((view.dealer + 1) % 4) as Seat,
+        // The sheet, and "Pregled ruke" on it, come up on this frame: the
+        // scored deal's tricks, verbatim from the authoritative view. The
+        // history carried from the batch's start lacks the trick this batch
+        // finished, and on a match's last deal the matchOver beat (~900 ms)
+        // still runs before the terminal sync brings it. Only a settled
+        // finalView holds this deal's; a batch that ran on into the next deal
+        // keeps the history it has.
+        ...(finalView.phase === 'DEAL_OVER' || finalView.phase === 'MATCH_OVER' ? { history: finalView.history } : {}),
       });
 
     case 'matchOver':

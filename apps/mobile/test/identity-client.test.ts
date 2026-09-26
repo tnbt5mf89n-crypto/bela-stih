@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Lang, LOCALE_IDS } from '@belot/i18n';
 import {
   BLOCK_LIST_MAX,
@@ -150,5 +150,97 @@ describe('the app is wired to it', () => {
     expect(online).toMatch(/net\.trouble === 'appTooOld' && <Button label=\{ui\.updateApp\}/);
     expect(src('table/GiftPicker.tsx')).toMatch(/moderate\.onBlock && \(/);
     expect(src('screens/SettingsScreen.tsx')).toMatch(/ui\.blockedPlayers/);
+  });
+
+  it('the gifts switch takes only the gifts: another person\'s puck still opens hide, block, mute and report', () => {
+    // No render harness here, so the table's own two expressions are run as
+    // written: the one early return that leaves a puck bare, and the gate the
+    // picker is drawn under.
+    const t = src('TableScreen.tsx');
+    const bare = /const giftPress = \(s: Seat, child: ReactElement\) => \{\s*if \((.+)\) return child;/.exec(t)?.[1];
+    const gate = /\{giftTarget !== null && (.+) && \(\s*<GiftPicker/.exec(t)?.[1];
+    expect(bare, 'giftPress').toBeDefined();
+    expect(gate, 'the picker gate').toBeDefined();
+    const isBare = new Function('s', 'mySeat', 'onGift', 'onHide', 'onReport', 'seatMeta', `return !!(${bare});`);
+    const drawn = new Function('onGift', 'moderating', `return !!(${gate});`);
+    const f = () => {};
+    const seats = [{ pureBot: false }, { pureBot: false }, { pureBot: true }, { pureBot: false }];
+    // Gifts off: a person's puck opens, and openGifts makes the panel the player view.
+    expect(isBare(1, 0, undefined, f, f, seats)).toBe(false);
+    expect(drawn(undefined, true)).toBe(true);
+    expect(t).toMatch(/setModerating\(!giftable && target !== 'table'\);/);
+    // Still bare: my own puck, a pure bot's, and a table with nobody to report (offline).
+    expect(isBare(0, 0, undefined, f, f, seats)).toBe(true);
+    expect(isBare(2, 0, undefined, f, f, seats)).toBe(true);
+    expect(isBare(1, 0, undefined, undefined, undefined, seats)).toBe(true);
+    // With gifts every puck opens the picker, as before, and a gift grid needs gifts.
+    expect(isBare(0, 0, f, undefined, undefined, seats)).toBe(false);
+    expect(drawn(f, false)).toBe(true);
+    expect(drawn(undefined, false)).toBe(false);
+  });
+
+  it('offers Block only where it can be kept: a seat whose app sent an install ID', () => {
+    // An older app's seat has none, so a block would only hide it at this
+    // table while the button says "for good".
+    const expr = /blockable: (.+),/.exec(src('net/OnlineGame.tsx'))?.[1];
+    expect(expr).toBeDefined();
+    const blockable = new Function('s', 'net', `return !!(${expr});`);
+    expect(blockable({ seat: 1, installId: HEX }, { seat: 0 })).toBe(true);
+    expect(blockable({ seat: 1 }, { seat: 0 })).toBe(false);
+    expect(blockable({ seat: 0, installId: HEX }, { seat: 0 })).toBe(false);
+    expect(src('TableScreen.tsx')).toMatch(/\.\.\.\(onBlock && seatMeta\?\.\[giftTarget\]\?\.blockable\s*\?/);
+  });
+
+  it('an opt-in said while the line was down is said again when the seat comes back', () => {
+    // The room keeps a seat's answer across a reconnect, so one that never
+    // arrived would leave the player opted in here and deaf there, never asked again.
+    const net = src('net/useNetGame.ts');
+    const attach = net.slice(net.indexOf('const attach = useCallback('), net.indexOf("room.onMessage('view'"));
+    expect(attach).toMatch(/\} else if \(optedInRef\.current\) \{[^}]*room\.send\('voiceIn', \{ on: true \}\);\s*\}/);
+    // ...and only at the same table: a new one forgets the answer.
+    expect(attach).toMatch(/optedInRef\.current = false;\s*setOptedIn\(false\);/);
+    expect(net).toMatch(/optedInRef\.current = on;\s*roomRef\.current\?\.send\('voiceIn', \{ on \}\);/);
+  });
+});
+
+describe('a browser that keeps nothing', () => {
+  // The web build's own modules, run for real over a window whose storage is
+  // off (Firefox's dom.storage.enabled=false: null) or locked (site data
+  // blocked: the getter throws).
+  const off = [() => null, () => { throw new Error('SecurityError: access is denied for this document'); }];
+  const g = globalThis as { window?: unknown; localStorage?: unknown };
+  afterEach(() => {
+    delete g.window;
+    delete g.localStorage;
+    vi.doUnmock('react-native');
+    vi.doUnmock('react-native-mmkv');
+    vi.resetModules();
+  });
+
+  it('remembers the conduct sheet for the session, so the mic can record at all', async () => {
+    for (const storage of off) {
+      vi.resetModules();
+      vi.doMock('react-native', () => ({ Platform: { OS: 'web' } }));
+      g.window = { get localStorage() { return storage(); } };
+      const { acceptConduct, conductAccepted } = await import('../src/storage');
+      expect(conductAccepted()).toBe(false);
+      acceptConduct();
+      expect(conductAccepted()).toBe(true);
+    }
+  });
+
+  it('starts where the storage getter throws: the socket polyfill does not trip on it', async () => {
+    vi.resetModules();
+    vi.doMock('react-native-mmkv', () => ({
+      createMMKV: () => ({ getString: () => undefined, set: () => {}, remove: () => {}, clearAll: () => {} }),
+    }));
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, get: off[1] });
+    // It used to throw right here, as the bundle loaded: the page never left its placeholder.
+    await import('../src/net/polyfills');
+    delete g.localStorage;
+    // Where there is none at all (React Native), the shim still goes in.
+    vi.resetModules();
+    await import('../src/net/polyfills');
+    expect(typeof (g.localStorage as Storage | undefined)?.getItem).toBe('function');
   });
 });

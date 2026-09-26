@@ -55,10 +55,20 @@ set -euo pipefail
 cd /opt/bela
 # The box's config.json (the kill switch) is what an operator edits in an
 # emergency; a deploy must not put the repo's copy back over it. The repo's
-# file seeds a box that has none.
+# file seeds a box that has none. It lists banned installations, so it lives
+# in deploy/private, which only the game container mounts: a box from before
+# kept it in deploy/site, where caddy served it to anyone. Its switches and
+# bans move over once, and no copy is left there to serve.
+if [ -f deploy/site/config.json ] && [ ! -f deploy/private/config.json ]; then
+  mkdir -p deploy/private && mv deploy/site/config.json deploy/private/config.json
+fi
 EX=
-if [ -f deploy/site/config.json ]; then EX=--exclude=deploy/site/config.json; fi
+if [ -f deploy/private/config.json ]; then EX=--exclude=deploy/private/config.json; fi
 tar xzf deploy.tgz \$EX && rm deploy.tgz
+rm -f deploy/site/config.json
+# The server runs as an unprivileged user: a file only root can read would leave
+# it on the defaults, bans off.
+chmod a+r deploy/private/config.json
 cd deploy
 export DOMAIN=$DOMAIN
 export BELA_TAG=$SHA

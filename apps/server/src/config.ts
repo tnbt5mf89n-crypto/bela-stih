@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { INSTALL_ID_RE } from './protocol';
 
 /**
@@ -6,12 +7,14 @@ import { INSTALL_ID_RE } from './protocol';
  * without a deploy - Play has no rollback, and a native swap that goes wrong
  * on some phone otherwise stays wrong until the next release reaches it.
  *
- * Served as a static file beside the privacy page (deploy/site/config.json,
- * https://<domain>/config.json - the app reads the same file) and pointed at
- * by CONFIG_URL. CONFIG_JSON (inline) wins over the URL, for tests and for a
- * box that must run with a fixed config; with neither set, the defaults
- * apply and nothing is fetched. A file that fails to fetch or parse changes
- * nothing: the last good config stays, and /health says when it was read.
+ * On the box it is deploy/private/config.json, mounted into the game
+ * container alone and named by CONFIG_FILE: it lists banned installations,
+ * so it is never served (the app reads the switches from /health, which
+ * counts the bans and names none). CONFIG_URL reads the same JSON over HTTP
+ * instead; CONFIG_JSON (inline) wins over both, for tests and for a box that
+ * must run with a fixed config; with none set, the defaults apply and nothing
+ * is read. A file that fails to read or parse changes nothing: the last good
+ * config stays, and /health says when it was read.
  *
  * Every field is optional and every unknown one is ignored, so an old server
  * survives a new file and a typo turns one switch back to its default rather
@@ -30,7 +33,7 @@ export interface RemoteConfig {
   strangerClips: boolean;
   gifts: boolean;
   emotes: boolean;
-  /** Install IDs refused at the door (BANNED_CODE). Evaded by reinstalling; that is accepted until accounts exist. */
+  /** Published IDs (the digest a report names) refused at the door (BANNED_CODE). Evaded by reinstalling; accepted until accounts exist. */
   banned: ReadonlySet<string>;
 }
 
@@ -111,32 +114,51 @@ export function configStatus(): Record<string, unknown> {
 }
 
 /**
- * Start reading the config: CONFIG_JSON inline once, or CONFIG_URL every
- * `everyMs`. Never throws; a bad fetch is remembered for /health and retried.
+ * An error as /health may show it. Never the body: a JSON error quotes the
+ * text around the fault, which could be the ban list, and lastError goes to
+ * /health. Dropping only the quoted strings is not enough - the quote can
+ * begin inside one, and then half a digest stands outside every pair.
  */
-export function startConfigPolling(env: { CONFIG_JSON?: string; CONFIG_URL?: string }, everyMs = 60_000): void {
+function shown(e: unknown): string {
+  if (e instanceof SyntaxError) return 'not valid JSON';
+  return (e instanceof Error ? e.message : String(e)).replace(/"(?:[^"\\]|\\.)*"/g, '"…"').slice(0, 160);
+}
+
+/**
+ * Start reading the config: CONFIG_JSON inline once, or CONFIG_FILE (else
+ * CONFIG_URL) every `everyMs`. Never throws; a bad read is remembered for
+ * /health and retried. Returns what stops the polling, for tests.
+ */
+export function startConfigPolling(env: { CONFIG_JSON?: string; CONFIG_FILE?: string; CONFIG_URL?: string }, everyMs = 60_000): () => void {
   if (env.CONFIG_JSON) {
     try {
       setConfig(parseConfig(JSON.parse(env.CONFIG_JSON)), 'CONFIG_JSON');
       fetchedAt = Date.now();
     } catch (e) {
-      lastError = `CONFIG_JSON: ${(e as Error).message}`;
+      lastError = `CONFIG_JSON: ${shown(e)}`;
       console.error(`[bela] ${lastError}`);
     }
-    return;
+    return () => {};
   }
-  const url = env.CONFIG_URL;
-  if (!url) return;
+  // The file wins over the URL: it is how the box keeps the ban list off the web.
+  const file = env.CONFIG_FILE;
+  const from = file || env.CONFIG_URL;
+  if (!from) return () => {};
+  const load = async (): Promise<unknown> => {
+    // trimStart() drops a BOM too (an editor on Windows), as fetch's res.json() does.
+    if (file) return JSON.parse((await readFile(file, 'utf8')).trimStart());
+    const res = await fetch(from, { signal: AbortSignal.timeout(5000), headers: { 'cache-control': 'no-cache' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
   const read = async (): Promise<void> => {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { 'cache-control': 'no-cache' } });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setConfig(parseConfig(await res.json()), url);
+      setConfig(parseConfig(await load()), from);
       fetchedAt = Date.now();
       lastError = '';
     } catch (e) {
-      const msg = (e as Error).message;
-      if (msg !== lastError) console.error(`[bela] config ${url}: ${msg} (keeping the last one)`);
+      const msg = shown(e);
+      if (msg !== lastError) console.error(`[bela] config ${from}: ${msg} (keeping the last one)`);
       lastError = msg;
     }
   };
@@ -144,4 +166,5 @@ export function startConfigPolling(env: { CONFIG_JSON?: string; CONFIG_URL?: str
   const timer = setInterval(() => void read(), everyMs);
   // Never the reason the process stays up.
   timer.unref();
+  return () => clearInterval(timer);
 }

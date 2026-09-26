@@ -54,19 +54,37 @@ export function SettingsScreen({
   const taps = useRef<number[]>([]);
   const [diag, setDiag] = useState(false);
   const [golden, setGolden] = useState<{ ok: boolean; text: string } | null>(null);
+  // A replay under way: its button stands dimmed, and another press starts nothing.
+  const [replaying, setReplaying] = useState(false);
   const tapVersion = () => {
     const now = Date.now();
-    taps.current = [...taps.current.filter((t) => now - t < 3000), now];
+    // Six seconds for five taps: a harness's taps (Maestro) come slower than a thumb's.
+    taps.current = [...taps.current.filter((t) => now - t < 6000), now];
     if (taps.current.length >= 5) setDiag(true);
   };
   const replayGolden = () => {
-    const t0 = Date.now();
-    const report = runGolden();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- the fixture, as the tests read it
-    const expected = require('../../../../packages/engine/test/golden/expected.json') as { hash: string; playHash: string };
-    const ms = Date.now() - t0;
-    const same = report.playHash === expected.playHash && report.hash === expected.hash;
-    setGolden({ ok: same, text: same ? ui.diagOk(ms) : ui.diagDiff(report.playHash.slice(0, 8)) });
+    if (replaying) return;
+    setReplaying(true);
+    setGolden(null);
+    // The corpus holds the JavaScript thread for seconds on Hermes, and nothing
+    // set in this press could show before it let go: the dimmed button (and the
+    // last verdict gone) paint first, and the replay runs after.
+    setTimeout(() => {
+      const t0 = Date.now();
+      try {
+        const report = runGolden();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- the fixture, as the tests read it
+        const expected = require('../../../../packages/engine/test/golden/expected.json') as { hash: string; playHash: string };
+        const ms = Date.now() - t0;
+        const same = report.playHash === expected.playHash && report.hash === expected.hash;
+        setGolden({ ok: same, text: same ? ui.diagOk(ms) : ui.diagDiff(report.playHash.slice(0, 8)) });
+      } catch (e) {
+        // A corpus that cannot even run on this engine is a difference too: say so, never crash the settings.
+        setGolden({ ok: false, text: ui.diagDiff(String((e as Error)?.message ?? e).slice(0, 40)) });
+      } finally {
+        setReplaying(false);
+      }
+    }, 50);
   };
   // Back answers the question safely rather than leaving the settings under it.
   useBackCloses(asking, () => setAsking(false));
@@ -173,6 +191,7 @@ export function SettingsScreen({
           {PLAY_MODES.map((d) => (
             <PressScale
               key={d}
+              testID={`mode-${d}`}
               onPress={() => {
                 onSettingsChange({ ...settings, difficulty: d });
               }}
@@ -481,10 +500,11 @@ export function SettingsScreen({
       </Text>
       {diag && (
         <Panel label={ui.diagTitle}>
-          <Button label={ui.diagGolden} tone="plain" testID="diag-golden" onPress={replayGolden} />
+          <Button label={ui.diagGolden} tone="plain" testID="diag-golden" disabled={replaying} onPress={replayGolden} />
+          {/* One Text: a nested one is a span on Android and its testID reaches no harness. */}
           {golden && (
-            <Text style={styles.hint} testID="golden-result">
-              <Text testID={golden.ok ? 'golden-ok' : 'golden-diff'}>{golden.text}</Text>
+            <Text style={styles.hint} testID={golden.ok ? 'golden-ok' : 'golden-diff'}>
+              {golden.text}
             </Text>
           )}
         </Panel>

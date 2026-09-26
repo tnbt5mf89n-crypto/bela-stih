@@ -149,16 +149,20 @@ export const motion = { fast: 120, base: 220, slow: 360 } as const;
  * springs in a voice of its own. `lift` is the only one that overshoots (~10%):
  * a card picked up, a badge landing. feel.test.ts requires every withSpring to
  * use one of these.
+ *
+ * The mass is written out on every token because Reanimated 4's withSpring
+ * fills a missing one from its GentleSpringConfig, mass 4: that halves every
+ * damping ratio below, and the lift overshot 37% instead of about 10%.
  */
 export const spring = {
   /** A card in flight, a deal. */
-  flight: { stiffness: 380, damping: 31.2 },
+  flight: { stiffness: 380, damping: 31.2, mass: 1 },
   /** Lift and select: the one with overshoot. */
-  lift: { stiffness: 800, damping: 33.9 },
+  lift: { stiffness: 800, damping: 33.9, mass: 1 },
   /** Sheets and panels sliding in. */
-  sheet: { stiffness: 700, damping: 47.6 },
+  sheet: { stiffness: 700, damping: 47.6, mass: 1 },
   /** Fades: as good as immediate, never bouncing. */
-  opacity: { stiffness: 1600, damping: 80 },
+  opacity: { stiffness: 1600, damping: 80, mass: 1 },
 } as const;
 
 /**

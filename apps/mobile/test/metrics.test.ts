@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   computeTableMetrics,
@@ -11,6 +14,9 @@ import {
   giftBadgeBox,
   giftPickerLayout,
   GIFT_PICKER,
+  GIFT_PICKER_CHROME,
+  playerViewHeight,
+  playerViewMax,
   BIDDING_ACTIONS,
   EMOTE_TOGGLE,
   LAND_GAP,
@@ -312,6 +318,46 @@ describe('the short column', () => {
     }
     for (const [w, h] of LANDSCAPE) expect(computeTableMetrics(w, h).shortColumn, `${w}x${h}`).toBe(false);
   });
+
+  it('"Velike karte" grows the fan only as far as the column pays for it', () => {
+    // Grown unchecked, the fan turned the Samsung (360x723) into a short column
+    // and pushed a 320x568 phone's tallest moment under the navigation bar.
+    const boxes: (readonly [number, number])[] = [...SHORT_PHONES, [360, 568], [360, 723], [360, 740], [360, 800], [412, 915]];
+    // ...and the portrait boxes between, in steps.
+    for (let w = 300; w <= 520; w += 8) for (let h = 500; h <= 1100; h += 10) if (w < h) boxes.push([w, h]);
+    for (const [w, h] of boxes) {
+      const plain = computeTableMetrics(w, h);
+      const big = computeTableMetrics(w, h, { bigCards: true });
+      // The phone keeps the column its default fan gets...
+      expect(big.shortColumn, `${w}x${h}`).toBe(plain.shortColumn);
+      if (big.shortColumn) {
+        // ...a short one holds every moment the default fan held, and one it could not hold no worse...
+        for (const [name, rows] of Object.entries(SHORT_STATES)) {
+          expect(need(big, rows), `${w}x${h}: ${name}`).toBeLessThanOrEqual(Math.max(h, need(plain, rows)));
+        }
+      } else {
+        // ...a full one still answers the busiest moments above the bottom edge...
+        for (const rows of [DECLARING, BIDDING]) {
+          expect(rows + big.handMinHeight + big.selfPuck + 10 + big.feltMinHeight, `${w}x${h}`).toBeLessThanOrEqual(h);
+        }
+      }
+      // ...and no hand, of any size, comes out smaller than the default's.
+      for (let n = 1; n <= 8; n++) {
+        const was = fitHand(plain.handWidth, n, plain.handCardMax, plain.handReveal).cardW;
+        expect(fitHand(big.handWidth, n, big.handCardMax, big.handReveal).cardW, `${w}x${h}, ${n} cards`).toBeGreaterThanOrEqual(was);
+      }
+    }
+    // Where the column has room the cards still grow: the Samsung's, and a short column with baize to spare.
+    const eight = (w: number, h: number, bigCards: boolean) => {
+      const m = computeTableMetrics(w, h, { bigCards });
+      return fitHand(m.handWidth, 8, m.handCardMax, m.handReveal).cardW;
+    };
+    for (const [w, h] of [[360, 723], [360, 640], [360, 800]] as const) {
+      expect(eight(w, h, true) / eight(w, h, false), `${w}x${h}`).toBeGreaterThan(1.1);
+    }
+    // Where it has none, the default fan stays.
+    expect(eight(320, 568, true)).toBe(eight(320, 568, false));
+  });
 });
 
 describe('my puck', () => {
@@ -560,5 +606,26 @@ describe('the gift picker', () => {
     }
     const still = giftPickerLayout(360, 800, false);
     expect(still.gridMax).toBe(still.gridH);
+  });
+
+  it("keeps the player view's header on screen: its rows scroll where the safe box cannot hold them", () => {
+    // Hide, block, mute and report make a 432 dp panel; the Samsung held sideways has 336.
+    expect(GIFT_PICKER_CHROME + playerViewHeight(4)).toBe(432);
+    expect(playerViewHeight(4)).toBeGreaterThan(playerViewMax(336));
+    for (const [w, h] of [...PHONES_UP, ...PHONES_SIDE]) {
+      for (const actions of [2, 3, 4]) {
+        // The rows at their least, and with every note a line longer (larger text).
+        for (const rows of [playerViewHeight(actions), playerViewHeight(actions) + (actions + 1) * 14]) {
+          // The panel as drawn: its chrome, and as much of the rows as the scroll view shows.
+          expect(GIFT_PICKER_CHROME + Math.min(rows, playerViewMax(h)), `${w}x${h}, ${actions} actions`).toBeLessThanOrEqual(h - 24);
+        }
+      }
+    }
+    // Upright, every phone shows all four at their least without scrolling.
+    for (const [w, h] of PHONES_UP) expect(playerViewHeight(4), `${w}x${h}`).toBeLessThanOrEqual(playerViewMax(h));
+    // ...and the picker draws it so: the player view is that scroll view, capped by the safe box.
+    const picker = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src/table/GiftPicker.tsx'), 'utf8');
+    expect(picker).toMatch(/const playerMax = playerViewMax\(height - insets\.top - insets\.bottom\);/);
+    expect(picker).toMatch(/\{moderating && moderate \? \(\s*<ScrollView style=\{\[styles\.playerScroll, \{ maxHeight: playerMax \}\]\}/);
   });
 });

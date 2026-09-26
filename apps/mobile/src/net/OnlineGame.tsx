@@ -150,6 +150,10 @@ export function OnlineGame({
     setMicDuck(mic.phase === 'recording');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hold is stable (useCallback on pump)
   }, [mic.phase]);
+  // The screen closing mid-take (leave, back): audio.ts's duck is module state
+  // and outlives the screen, and would hold every game sound at 40% until the
+  // next online table.
+  useEffect(() => () => setMicDuck(false), []);
   // Play's terms-before-UGC rule: the rules of conduct are shown, once, before
   // the first voice message ever leaves this device. The press that meets the
   // sheet records nothing; the next one does.
@@ -391,6 +395,9 @@ export function OnlineGame({
       bot: s.bot,
       connected: s.connected,
       pureBot,
+      // Block is offered only where it can be kept: a seat whose app sent an
+      // install ID. An older app's seat would only be hidden at this table.
+      blockable: s.seat !== net.seat && !!s.installId,
     };
   }
 

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { Table } from '@belot/table';
 import { canon, EVENT_KINDS, hash64, runGolden, SCENARIOS, type GoldenReport } from './golden/run';
 
 /**
@@ -11,7 +12,12 @@ import { canon, EVENT_KINDS, hash64, runGolden, SCENARIOS, type GoldenReport } f
  *
  *   GOLDEN_UPDATE=1 npx vitest run packages/engine/test/golden.test.ts
  *
- * and say why in the same commit.
+ * and say why in the same commit. That refreshes the views (and takes in a
+ * new scenario), and refuses while any scenario PLAYS differently. A change
+ * to the plays made on purpose - the rules, a seed, the play policy - takes
+ * both flags:
+ *
+ *   GOLDEN_RULES=1 GOLDEN_UPDATE=1 npx vitest run packages/engine/test/golden.test.ts
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +27,22 @@ describe('the golden corpus', () => {
   const report = runGolden();
 
   it('is the same as when it was written, deal for deal', () => {
+    // The rules first - the actions, the events and the result of every deal - over the WHOLE
+    // corpus and BEFORE any refresh: a view that moved in the first scenario must not hide a play
+    // that moved in a later one, and a view refresh must not quietly take a moved play with it.
+    if (existsSync(FIXTURE) && !(process.env.GOLDEN_UPDATE && process.env.GOLDEN_RULES)) {
+      const old = JSON.parse(readFileSync(FIXTURE, 'utf8')) as GoldenReport;
+      for (const s of report.scenarios) {
+        const was = old.scenarios.find((w) => w.name === s.name);
+        if (!was) continue;
+        const firstPlay = s.playHashes.findIndex((h, d) => h !== was.playHashes[d]);
+        expect(
+          firstPlay,
+          `${s.name} (seed ${s.seed}): deal ${firstPlay + 1} of ${s.playHashes.length} PLAYS differently (${s.playHashes[firstPlay]} vs ${was.playHashes[firstPlay]}) - the rules changed (on purpose: GOLDEN_RULES=1 GOLDEN_UPDATE=1)`,
+        ).toBe(-1);
+        expect(s.playHashes.length, `${s.name}: the match now has a different number of deals`).toBe(was.playHashes.length);
+      }
+    }
     if (process.env.GOLDEN_UPDATE) {
       writeFileSync(FIXTURE, JSON.stringify(report, null, 1) + '\n');
     }
@@ -30,23 +52,38 @@ describe('the golden corpus', () => {
     expect(report.scenarios.map((s) => s.name)).toEqual(expected.scenarios.map((s) => s.name));
     for (const [i, s] of report.scenarios.entries()) {
       const was = expected.scenarios[i]!;
-      // The rules first: the actions, the events and the result of every deal.
-      const firstPlay = s.playHashes.findIndex((h, d) => h !== was.playHashes[d]);
-      expect(
-        firstPlay,
-        `${s.name} (seed ${s.seed}): deal ${firstPlay + 1} of ${s.playHashes.length} PLAYS differently (${s.playHashes[firstPlay]} vs ${was.playHashes[firstPlay]}) - the rules changed`,
-      ).toBe(-1);
       // Then the views: a field added to PublicView moves these and only these.
       const firstDiff = s.dealHashes.findIndex((h, d) => h !== was.dealHashes[d]);
       expect(
         firstDiff,
-        `${s.name} (seed ${s.seed}): deal ${firstDiff + 1} of ${s.dealHashes.length} no longer hashes the same (${s.dealHashes[firstDiff]} vs ${was.dealHashes[firstDiff]}) - the views or events changed (the plays did not)`,
+        `${s.name} (seed ${s.seed}): deal ${firstDiff + 1} of ${s.dealHashes.length} no longer hashes the same (${s.dealHashes[firstDiff]} vs ${was.dealHashes[firstDiff]}) - the views changed (the plays did not)`,
       ).toBe(-1);
       expect(s.dealHashes.length, `${s.name}: the match now has a different number of deals`).toBe(was.dealHashes.length);
       expect(s.hash).toBe(was.hash);
     }
     expect(report.hash).toBe(expected.hash);
     expect(report.playHash).toBe(expected.playHash);
+  });
+
+  it('keeps the views out of the play hashes: a hand shown in another order moves only the view hashes', () => {
+    // The corpus's own choices (a wrong blind marking, the renons card) must come from the engine's
+    // hands, not from what a seat is shown: sorting a hand for display is not a rules change.
+    const view = Table.prototype.view;
+    Table.prototype.view = function (seat) {
+      const v = view.call(this, seat);
+      return { ...v, hand: v.hand.slice().reverse() };
+    };
+    let reordered: GoldenReport;
+    try {
+      reordered = runGolden();
+    } finally {
+      Table.prototype.view = view;
+    }
+    for (const [i, s] of reordered.scenarios.entries()) {
+      const was = report.scenarios[i]!;
+      expect(s.playHashes, `${s.name}: the plays moved with the order a view shows the hand in`).toEqual(was.playHashes);
+      expect(s.dealHashes, `${s.name}: the reversed hands never reached the views`).not.toEqual(was.dealHashes);
+    }
   });
 
   it('reaches every event kind and every rare path', () => {

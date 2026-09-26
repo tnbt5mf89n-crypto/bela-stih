@@ -114,8 +114,9 @@ async function main(): Promise<void> {
   // The older app's seat is never sent a gift: one for it alone is dropped.
   a.send('gift', { id: 'kava', to: seatC });
   await wait(400);
-  // (C hears every broadcast — an older app would just ignore them — so the
-  // check is that nothing new went out and nothing ever named C's seat.)
+  // (C is still sent every gift, as nobody here blocks anyone — an older app
+  // would just ignore them — so the check is that nothing new went out and
+  // nothing ever named C's seat.)
   check(seenByB.length === 1 && !seenByC.some((m) => m.to.includes(seatC as never)), 'a gift for an older app alone is dropped');
 
   // None of those used up the window: a table gift goes straight through, as

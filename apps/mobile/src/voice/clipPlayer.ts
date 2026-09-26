@@ -9,10 +9,13 @@ export interface ClipPlayback {
  * One clip on a phone: a player of its own, released - its audio track with
  * it - when the clip ends or is stopped. (A player that is only removed keeps
  * its track until the collector runs, and an app has 40.) The browser's twin
- * is clipPlayer.web.ts. `onStart` once the sound is really coming out -
- * the speaker is told so (a receipt), so not a moment before.
+ * is clipPlayer.web.ts, with the same contract: `onEnd(true)` only for a clip
+ * played to its end - the speaker is told so (a receipt) - and `onEnd(false)`
+ * for one that could not be played. A phone's failed player never says it has
+ * finished; the caller's own timer lets that clip go. `onStart` once the sound
+ * is really coming out.
  */
-export function playClip(uri: string, volume: number, onEnd: () => void, onStart?: () => void): ClipPlayback {
+export function playClip(uri: string, volume: number, onEnd: (heard: boolean) => void, onStart?: () => void): ClipPlayback {
   const player = createAudioPlayer(uri);
   let done = false;
   let started = false;
@@ -23,7 +26,7 @@ export function playClip(uri: string, volume: number, onEnd: () => void, onStart
     }
     if (s.didJustFinish) {
       stop();
-      onEnd();
+      onEnd(true);
     }
   });
   const stop = () => {

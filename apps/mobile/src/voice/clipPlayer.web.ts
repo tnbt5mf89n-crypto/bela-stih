@@ -47,15 +47,19 @@ function unlockOnce(): void {
 }
 unlockOnce();
 
-export function playClip(uri: string, volume: number, onEnd: () => void, onStart?: () => void): ClipPlayback {
+export function playClip(uri: string, volume: number, onEnd: (heard: boolean) => void, onStart?: () => void): ClipPlayback {
   const a = element();
   if (!a) throw new Error('no audio element');
   let done = false;
-  const finished = () => {
+  const finish = (heard: boolean) => {
     if (done) return;
     stop();
-    onEnd();
+    onEnd(heard);
   };
+  const ended = () => finish(true);
+  // Undecodable or broken off (an 'error'; a pending play() rejects as well), or
+  // refused (the page never touched): over at once, and not heard - no receipt.
+  const failed = () => finish(false);
   // Really playing, not merely asked to (a refusal never gets here).
   const playing = () => {
     a.removeEventListener('playing', playing);
@@ -64,20 +68,20 @@ export function playClip(uri: string, volume: number, onEnd: () => void, onStart
   const stop = () => {
     if (done) return;
     done = true;
-    a.removeEventListener('ended', finished);
-    a.removeEventListener('error', finished);
+    a.removeEventListener('ended', ended);
+    a.removeEventListener('error', failed);
     a.removeEventListener('playing', playing);
     a.pause();
     a.removeAttribute('src');
     a.load();
   };
-  a.addEventListener('ended', finished);
-  a.addEventListener('error', finished);
+  a.addEventListener('ended', ended);
+  a.addEventListener('error', failed);
   a.addEventListener('playing', playing);
   a.muted = false;
   a.volume = Math.max(0, Math.min(1, volume));
   a.src = uri;
   // A refusal (the page never touched) ends the clip at once, not after its length.
-  void a.play()?.catch(finished);
+  void a.play()?.catch(failed);
   return { stop };
 }

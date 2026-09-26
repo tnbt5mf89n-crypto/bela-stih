@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import type { DealHistory, Seat } from '@belot/shared-types';
 import type { Lang } from '@belot/i18n';
-import { cardLang, type DeckStyle } from '../cosmetics';
+import type { DeckStyle } from '../cosmetics';
 import { PlayingCard } from '../PlayingCard';
 import { Button } from '../ui/Button';
 import { depth, font, ink, radius, space, surface, type } from '../theme';
@@ -43,7 +43,7 @@ export function HandReview({
         </Text>
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {history.tricks.map((t, i) => (
-            <View key={i} style={styles.trick} accessible accessibilityLabel={`${ui.reviewTrick(i + 1)}: ${t.plays.map((p) => `${nameOf(p.seat)} ${lang.s.cardOf(cardLang().rankShort(p.card.rank), lang.suitName(p.card.suit))}`).join(', ')}. ${ui.reviewTook(nameOf(t.winner))}`}>
+            <View key={i} style={styles.trick} accessible accessibilityLabel={`${ui.reviewTrick(i + 1)}: ${t.plays.map((p) => `${nameOf(p.seat)} ${lang.cardName(p.card)}`).join(', ')}. ${ui.reviewTook(nameOf(t.winner))}`}>
               <Text style={styles.trickLabel} maxFontSizeMultiplier={1.3}>
                 {ui.reviewTrick(i + 1)}
               </Text>

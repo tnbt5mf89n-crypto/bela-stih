@@ -125,6 +125,8 @@ export function useGame(
         mySeat: () => HUMAN,
         view: () => getViewRef.current(),
         reduced: () => motionRef.current === 'reduced',
+        // Settings' tempo stretches the director's beats, so the sprites must keep step.
+        tempo: () => settingsRef.current.tempo,
       }),
     [anchors, fxBus, lang],
   );

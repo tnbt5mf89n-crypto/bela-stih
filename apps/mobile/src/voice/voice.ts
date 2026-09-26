@@ -85,6 +85,20 @@ export function loudnessOf(v: unknown): number | undefined {
 }
 
 /**
+ * A take's loudness header: the mean of the levels sampled while it recorded,
+ * dBFS, or nothing when none was heard. -160 is expo-audio's "no signal" (an
+ * amplitude of 0), and Android's recorder reports exactly that on the first
+ * reading of every take: it is not a level. Averaged in, it dragged a 1 s take
+ * (four readings) down by ~37 dB, and a clip of a second or two got the +9 dB
+ * cap whatever its level.
+ */
+export function meanDb(xs: readonly number[]): number | undefined {
+  const heard = xs.filter((x) => x > -160);
+  if (heard.length === 0) return undefined;
+  return heard.reduce((a, b) => a + b, 0) / heard.length;
+}
+
+/**
  * The gain that brings a clip to the table's level: -20 dBFS is the target,
  * and the correction is clamped to ±9 dB so a whisper is lifted and a shout
  * held, but nothing is turned into noise. No header, no change.

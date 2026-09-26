@@ -130,6 +130,29 @@ export function giftPickerLayout(w: number, h: number, land: boolean, count = 15
   const gridMax = scroll ? Math.max(cell + P.CAPTION, gridH - (panelH - room)) : gridH;
   return { cols, rows, cell, panelW, panelH, gridH, gridMax, scroll };
 }
+
+/** The picker's panel around its body: padding, border, the header and the gap under it. */
+export const GIFT_PICKER_CHROME = 2 * GIFT_PICKER.PAD + 2 + GIFT_PICKER.HEADER + GIFT_PICKER.GAP;
+
+/**
+ * The player view's rows at their least: a button and its note for each
+ * action (hide, block, mute, report), then the report's fallback address.
+ */
+export function playerViewHeight(actions: number): number {
+  const P = GIFT_PICKER;
+  return actions * (P.SEND + P.GAP + P.NOTE + P.GAP) + P.NOTE;
+}
+
+/**
+ * The most the player view may take in a backdrop `h` tall (the safe box,
+ * insets already off), 12 dp kept above and below the panel. All four
+ * actions make a 432 dp panel, and a phone held sideways has 336: the rows
+ * scroll under the header rather than push the title and the close button
+ * off the top of the screen and the fallback address off the bottom.
+ */
+export function playerViewMax(h: number): number {
+  return Math.max(GIFT_PICKER.SEND, h - 24 - GIFT_PICKER_CHROME);
+}
 /** Landscape's gap between each rail and the centre column (styles.rootLand). */
 export const LAND_GAP = 6;
 
@@ -254,27 +277,52 @@ export function computeTableMetrics(usableW: number, usableH: number, opts: { bi
   // Landscape has width to burn and no height, so the hand takes a fixed
   // slice of the screen instead of the biggest card that fits across it.
   const grow = big ? BIG_CARDS_FACTOR : 1;
-  const handCardMax = landscape
+  let handCardMax = landscape
     ? clamp(Math.floor(cardWidthForHeight(usableH * 0.34, 8) * grow), 40, Math.round(76 * grow))
     : // Portrait: grow with the screen rather than staying at phone size. 76
       // is the handset figure and `scale` is already 1 there, so phones are
       // unchanged; a roomier window simply gets roomier cards.
       Math.round(76 * scale * grow);
-  const handReveal = big ? BIG_CARDS_REVEAL : DEFAULT_REVEAL;
+  let handReveal = big ? BIG_CARDS_REVEAL : DEFAULT_REVEAL;
+  // Portrait's budget: the fixed rows, a fan this tall, and my puck's row (the
+  // ring around the disc; no name is drawn there) - in the full column, and in
+  // the short one, which is built tighter (SHORT_CHROME) and tucks my puck
+  // into the fan's arc.
+  const portraitFixedFor = (fanH: number) => PORTRAIT_CHROME + fanH + selfPuck + 10;
+  const shortFixedFor = (fanH: number) => SHORT_CHROME + fanH + selfPuck + 10 - SELF_NESTLE;
+  if (big && !landscape) {
+    // "Velike karte" grows the fan only as far as the column pays for it.
+    // Grown unchecked it turned the 360x723 Samsung into a short column, and
+    // pushed a 320 dp phone's bottom row off the screen. So the phone keeps
+    // the column its default fan gets, a short column keeps the old baize
+    // (FELT_FLOOR_SHORT), and where not even the default cap fits the default
+    // fan stays: a lower cap would shrink a hand of a few cards.
+    const plainCap = Math.round(76 * scale);
+    const plainH = Math.ceil(fanHeight(fitHand(handWidth, 8, plainCap).cardW, 8));
+    const left = usableH - portraitFixedFor(plainH);
+    const spare =
+      left >= FELT_FLOOR_MIN
+        ? left - FELT_FLOOR_MIN
+        : Math.max(0, usableH - shortFixedFor(plainH) - FELT_FLOOR_SHORT);
+    const roomW = Math.floor(cardWidthForHeight(plainH + spare, 8));
+    if (roomW < plainCap) {
+      handCardMax = plainCap;
+      handReveal = DEFAULT_REVEAL;
+    } else handCardMax = Math.min(handCardMax, roomW);
+  }
   const fit = fitHand(handWidth, 8, handCardMax, handReveal);
   const handMinHeight = Math.ceil(fanHeight(fit.cardW, 8));
 
-  // Portrait's budget: the fixed rows, the fan, and my puck's row (the ring
-  // around the disc; no name is drawn there). The reserve is kept only if the
-  // felt keeps its whole floor with it; without it, the floor gives before
-  // the actions row is pushed off the bottom of a short phone.
-  const portraitFixed = PORTRAIT_CHROME + handMinHeight + selfPuck + 10;
+  // The reserve is kept only if the felt keeps its whole floor with it;
+  // without it, the floor gives before the actions row is pushed off the
+  // bottom of a short phone.
+  const portraitFixed = portraitFixedFor(handMinHeight);
   const promptReserve = !landscape && usableH - portraitFixed >= FELT_FLOOR;
   const shortColumn = !landscape && usableH - portraitFixed < FELT_FLOOR_MIN;
-  // The short column is built tighter (SHORT_CHROME). Its floor leaves the old
-  // baize where the phone can pay for it, and gives, down to the soft floor,
-  // rather than push an answer off a 320x548 screen.
-  const shortFixed = SHORT_CHROME + handMinHeight + selfPuck + 10 - SELF_NESTLE;
+  // The short column's floor leaves the old baize where the phone can pay for
+  // it, and gives, down to the soft floor, rather than push an answer off a
+  // 320x548 screen.
+  const shortFixed = shortFixedFor(handMinHeight);
   const feltMinHeight = landscape
     ? 0
     : shortColumn

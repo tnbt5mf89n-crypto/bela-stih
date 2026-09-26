@@ -471,7 +471,7 @@ describe('the first frame and the last resort', () => {
     expect(t).toMatch(/\{leaving && !matchOver && \(/);
     expect(t).toMatch(/if \(!matchOverRef\.current\) onFinish\(\);/);
     // The constants the budget uses are the ones the styles use.
-    expect(t).toMatch(/rootLand: \{[^}]*gap: LAND_GAP/);
+    expect(t).toMatch(/layerLand: \{[^}]*gap: LAND_GAP/);
     expect(src('table/SeatPuck.tsx')).toMatch(/const width = size \+ PUCK_NAME_ROOM;/);
     expect(portrait).toMatch(/\{!shed && emotes\}/);
     expect(portrait).toMatch(/\{status && !shed \?/);
@@ -552,7 +552,8 @@ describe('the first frame and the last resort', () => {
     const t = src('TableScreen.tsx');
     expect(src('table/metrics.ts')).toMatch(/export const SHORT_CHROME = 8 \+ 30 \+ 32 \+ 24 \+ 46 \+ 34 \+ 42 \+ 8 \* 4;/);
     // Each number the sum uses, in the style that draws it.
-    expect(t).toMatch(/rootShort: \{ paddingVertical: 4, gap: 4 \}/);
+    expect(t).toMatch(/rootShort: \{ paddingVertical: 4 \}/);
+    expect(t).toMatch(/layerShort: \{ gap: 4 \}/);
     expect(t).toMatch(/profileBarSlim: \{ paddingVertical: 2 \}/);
     expect(t).toMatch(/leaveSlim: \{ paddingVertical: 4 \}/);
     expect(t).toMatch(/teamPillSlim: \{ paddingVertical: 1 \}/);
@@ -586,7 +587,7 @@ describe('the first frame and the last resort', () => {
     expect(t).toMatch(/const belaOffered = !settled && view\.canAnnounceBela;/);
     expect(t).toMatch(/shed \? 1 : 0,\s*\]\.join\('\|'\);/);
     // Every short style hangs on the short column, on the line that uses it.
-    for (const name of ['rootShort', 'profileBarSlim', 'leaveSlim', 'teamPillSlim', 'pillValueSlim', 'liveSlim', 'feltFlush',
+    for (const name of ['rootShort', 'layerShort', 'profileBarSlim', 'leaveSlim', 'teamPillSlim', 'pillValueSlim', 'liveSlim', 'feltFlush',
       'callsRowShort', 'callChipShort', 'promptRowShort', 'promptLineShort', 'handNestle', 'bidShort',
       'promptInline', 'promptInlineText']) {
       const uses = [...t.matchAll(new RegExp(`styles\\.${name}\\b`, 'g'))];
@@ -851,6 +852,17 @@ describe('table gifts', () => {
     expect(foot).toMatch(/<\/>\s*\)\}\s*(?:\{onReview && <Button[^>]*\/>\}\s*)?<Button label=\{finishLabel\} tone="plain" onPress=\{onFinish\} \/>\s*<\/View>/);
   });
 
+  it("a deal's answers wrap on a narrow sheet rather than run off both edges", () => {
+    const t = src('TableScreen.tsx');
+    const style = (name: string) => new RegExp(`\\n  ${name}: \\{([^}]*)\\}`).exec(t)?.[1] ?? '';
+    // Next with its countdown, "Pregled ruke" and leave need 424 dp in Croatian; a 360 dp sheet has 326.
+    expect(style('resultButtons')).toMatch(/flexDirection: 'row', flexWrap: 'wrap'/);
+    // The waiting line that replaces next keeps its own width: a zero basis (flex: 1)
+    // left it only what the other two buttons did not take.
+    expect(style('nextReady')).toMatch(/flexGrow: 1/);
+    expect(style('nextReady')).not.toMatch(/\bflex(?:Basis)?: /);
+  });
+
   it('the table passes each seat its gift, and draws the picker over the sprites', () => {
     const t = src('TableScreen.tsx');
     expect(t).toMatch(/gift=\{gifts\?\.\[s\] \?\? null\}\s*giftN=\{giftLanded\?\.\[s\] \?\? 0\}/);
@@ -872,7 +884,8 @@ describe('table gifts', () => {
     expect(t).toMatch(/if \(myTurn && !myTurnWas\.current && !moderatingRef\.current\) shutGifts\(\);/);
     expect(t).toMatch(/setModerating\(!giftable && target !== 'table'\);/);
     expect(t).toMatch(/moderating=\{moderating\}\s*onModerate=\{\(\) => setModerating\(true\)\}/);
-    expect(t).toMatch(/if \(giftable\) onGift\(id, to\);/);
+    // (onGift is optional there: without gifts the panel is only the player view.)
+    expect(t).toMatch(/if \(giftable\) onGift\?\.\(id, to\);/);
     const picker = src('table/GiftPicker.tsx');
     // The picker keeps no mode of its own: a prop it cannot fall out of step with.
     expect(picker).not.toMatch(/useState\(giftsOff/);
@@ -890,7 +903,7 @@ describe('table gifts', () => {
     // only shutGifts itself and Android back set the target directly.
     expect((t.match(/setGiftTarget\(null\)/g) ?? []).length).toBe(2);
     expect(t).toMatch(/onClose=\{shutGifts\}/);
-    expect(t).toMatch(/onSend=\{\(id, to\) => \{\s*shutGifts\(\);[\s\S]{0,240}if \(giftable\) onGift\(id, to\);/);
+    expect(t).toMatch(/onSend=\{\(id, to\) => \{\s*shutGifts\(\);[\s\S]{0,240}if \(giftable\) onGift\?\.\(id, to\);/);
     // Back closes the picker before it asks about leaving.
     const guard = t.slice(t.indexOf('setBackGuard(() => {'));
     expect(guard.indexOf('giftTargetRef.current !== null')).toBeLessThan(guard.indexOf('leavingRef.current'));
@@ -913,7 +926,7 @@ describe('table gifts', () => {
     // ...and the kill switch (config.ts) in the same breath.
     expect(firstStatement).toBe('if (!this.started || !config().gifts) return;');
     expect(branch).toMatch(/< GIFT_GAP_MS\) return;/);
-    expect(branch.slice(0, branch.indexOf('this.broadcast(MSG.gift'))).not.toMatch(/this\.publish\(\)/);
+    expect(branch.slice(0, branch.indexOf('other.send(MSG.gift'))).not.toMatch(/this\.publish\(\)/);
   });
 
   it('online, the sender pays on the echo — or on leaving before it — and nowhere else', () => {
@@ -1108,6 +1121,14 @@ describe('offline timers die with the match', () => {
     expect(g).toMatch(/live\.forEach\(clearTimeout\);\s*live\.clear\(\);/);
     expect(g).toMatch(/later\(800, \(\) => \{\s*spawnEmote/);
     expect(g).toMatch(/later\(350, \(\) => enqueue\(/);
+  });
+});
+
+describe('the online table leaves nothing behind', () => {
+  it('lets the game sounds back up when it closes mid-take', () => {
+    // audio.ts's mic duck is module state: leaving (or back) while recording
+    // unmounted the screen with it set, and every sound stayed at 40%.
+    expect(src('net/OnlineGame.tsx')).toMatch(/\n  useEffect\(\(\) => \(\) => setMicDuck\(false\), \[\]\);\n/);
   });
 });
 

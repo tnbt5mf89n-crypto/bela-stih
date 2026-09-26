@@ -180,6 +180,60 @@ describe('director replay over real matches', () => {
   });
 });
 
+describe('"Pregled ruke" on the scored frame', () => {
+  it('never shows a settled view short of the deal the authority scored', () => {
+    // The result sheet and its review come up on dealScored's frame. On a
+    // match's last deal the matchOver beat still runs before the terminal
+    // sync, so a history carried from the batch's start, without the last
+    // trick, stood in the review for ~900 ms.
+    let settled = 0;
+    for (const seed of [3, 21, 77]) {
+      const table = new Table({ seed, humanSeats: [SEAT] });
+      const { d, cap } = makeDirector(table.view(SEAT));
+      const feed = () => {
+        const events = table.drainEvents();
+        const finalView = table.view(SEAT);
+        const before = cap.views.length;
+        d.enqueue({ events, finalView });
+        for (const v of cap.views.slice(before)) {
+          if (v.phase !== 'DEAL_OVER' && v.phase !== 'MATCH_OVER') continue;
+          settled++;
+          expect(v.history, `seed ${seed}, ${v.phase}`).toEqual(finalView.history);
+        }
+      };
+      feed();
+      let guard = 0;
+      while (table.phase !== 'MATCH_OVER') {
+        if (guard++ > 20_000) throw new Error('match did not finish');
+        if (table.phase === 'DEAL_OVER') table.startNextDeal();
+        else table.submit(table.legal()[0]!);
+        feed();
+      }
+      d.dispose();
+    }
+    expect(settled).toBeGreaterThan(20);
+  });
+
+  it('keeps the history it had if a batch ever ran on into the next deal', () => {
+    // Then the finalView's history is the new deal's, not the scored one's.
+    const table = new Table({ seed: 5, humanSeats: [SEAT] });
+    table.drainEvents();
+    let scored: TableEvent | undefined;
+    let guard = 0;
+    while (table.phase !== 'DEAL_OVER') {
+      if (guard++ > 2000) throw new Error('deal did not finish');
+      table.submit(table.legal()[0]!);
+      scored = table.drainEvents().find((e) => e.kind === 'dealScored') ?? scored;
+    }
+    const over = table.view(SEAT);
+    table.startNextDeal();
+    table.drainEvents();
+    const next = table.view(SEAT);
+    expect(next.phase).not.toBe('DEAL_OVER');
+    expect(applyEventEnd(over, scored!, next, SEAT).history).toBe(over.history);
+  });
+});
+
 describe('fast-forward and compression', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

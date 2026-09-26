@@ -38,9 +38,14 @@
         to aplikacija šalje <strong>nasumičnu oznaku instalacije</strong> (broj
         koji sama stvori jednom, bez veze s vama ili uređajem) i oznake igrača
         koje ste blokirali: služe samo tome da blokirani igrači ne sjedaju za
-        vaš stol i da prijava može reći o kome je. Ti se podaci obrađuju
+        vaš stol i da prijava može reći o kome je. Ostali igrači za stolom
+        vide samo jednosmjerni sažetak vaše oznake instalacije, koji služi
+        jedino tome da blokada ili prijava može pokazati na vaše mjesto za
+        stolom. Ti se podaci obrađuju
         <strong>samo u memoriji dok traje partija</strong> i nigdje se trajno
-        ne spremaju.</li>
+        ne spremaju, osim kad prijava dovede do isključenja vaše instalacije
+        iz online igre: tada sažetak njezine oznake ostaje na poslužitelju, na
+        popisu isključenih koji nije javan, dok isključenje ne ukinemo.</li>
     <li>Glasovne poruke: mikrofon se koristi <strong>samo dok držite tipku s
         mikrofonom</strong> ili, ako ste tako odabrali u postavkama, između dva
         dodira na nju (najviše 15 sekundi). Snimka ide poslužitelju, koji je
@@ -85,7 +90,8 @@
 
   <h2>Prijave igrača</h2>
   <p class="small">Kad prijavite igrača, primamo e-poruku koju sami pošaljete:
-     prijavljeni nadimak, kod stola, vrijeme, verziju igre, vašu adresu
+     prijavljeni nadimak i sažetak oznake instalacije tog igrača, kod stola,
+     vrijeme, verziju igre, vašu adresu
      e-pošte i ono što sami napišete (glasovne poruke ne spremamo, pa ih
      prijava ne može sadržavati — opišite što je rečeno). Svrha je obrada prijave i zaštita igrača
      od zlouporabe (legitimni interes, čl. 6. st. 1. t. (f) Opće uredbe o
@@ -103,19 +109,21 @@
      poslužitelju u Njemačkoj (Hetzner Online GmbH, kao izvršitelj obrade) i ne
      prenose se izvan EU-a. Zadržavanje: trajanje partije (glasovna poruka samo
      dok je poslužitelj ne proslijedi); tehnički zapisnici najviše nekoliko
-     dana do automatske rotacije.</p>
+     dana do automatske rotacije; sažetak oznake isključene instalacije dok
+     isključenje traje.</p>
 
   <h2>Vaša prava</h2>
   <p class="small">Imate pravo na pristup, ispravak, brisanje, ograničenje
-     obrade i prigovor (čl. 15.–21. Uredbe). Osim prijava igrača (vidi gore)
-     ništa trajno ne pohranjujemo, pa u pravilu nema podataka koje bismo mogli
+     obrade i prigovor (čl. 15.–21. Uredbe). Osim prijava igrača i popisa
+     isključenih (vidi gore) ništa trajno ne pohranjujemo, pa u pravilu nema podataka koje bismo mogli
      dostaviti ili izbrisati — no slobodno nam se obratite. Pritužbu možete podnijeti
      Agenciji za zaštitu osobnih podataka (<a href="https://azop.hr">azop.hr</a>).</p>
 
   <h2>Brisanje podataka</h2>
   <p>Sve svoje podatke brišete sami: u Postavkama odaberite „Izbriši napredak”
      ili jednostavno deinstalirajte aplikaciju. Na poslužitelju nema ničega
-     što bi trebalo brisati.</p>
+     što bi trebalo brisati, osim sažetka oznake na popisu isključenih — za
+     njega nam pišite.</p>
 
   <hr>
 
@@ -132,9 +140,14 @@
           The app also sends a <strong>random installation ID</strong> (a
           number it makes once, unrelated to you or your device) and the IDs
           of players you have blocked: they only keep blocked players away
-          from your table and let a report say whom it is about. That data is
+          from your table and let a report say whom it is about. Other players
+          at the table see only a one-way digest of your installation ID,
+          used solely so that a block or a report can name your seat. That
+          data is
           processed <strong>in memory for the duration of the match</strong>
-          and is never stored.</li>
+          and is never stored, unless a report leads us to ban your
+          installation from online play: the digest of its ID then stays on
+          the server's ban list (not public) until the ban is lifted.</li>
       <li>Voice messages: the microphone is used <strong>only while you hold
           the microphone button</strong> or, if you chose so in Settings,
           between your two taps on it (15 seconds at most). The recording goes
@@ -177,7 +190,8 @@
 
     <h2>Player reports</h2>
     <p class="small">When you report a player, we receive the e-mail you send:
-       the reported nickname, the table code, the time, the app version, your
+       the reported nickname and the digest of that player's installation ID,
+       the table code, the time, the app version, your
        e-mail address and whatever you write (voice messages are never stored,
        so a report cannot include one — describe what was said). We use it to handle the report
        and to protect players from abuse (legitimate interest, Art. 6(1)(f)
@@ -195,19 +209,21 @@
        Germany (Hetzner Online GmbH, as processor); nothing leaves the EU.
        Retention: the duration of the match (a voice message only until the
        server has passed it on); technical logs at most a few days until
-       automatic rotation.</p>
+       automatic rotation; the digest of a banned installation's ID for as
+       long as the ban lasts.</p>
 
     <h2>Your rights</h2>
     <p class="small">You have the right of access, rectification, erasure,
        restriction and objection (Art. 15–21 GDPR). Apart from player reports
-       (see above) nothing is stored, so there is usually nothing to hand over
+       and the ban list (see above) nothing is stored, so there is usually nothing to hand over
        or erase — but do get in touch.
        You may lodge a complaint with your supervisory authority; in Croatia
        that is AZOP (<a href="https://azop.hr">azop.hr</a>).</p>
 
     <h2>Deleting your data</h2>
     <p>You delete everything yourself: choose “Erase progress” in Settings, or
-       simply uninstall the app. There is nothing on the server to delete.</p>
+       simply uninstall the app. There is nothing on the server to delete,
+       except a banned installation's digest on the ban list: write to us for that.</p>
   </div>
 </main>
 </body>

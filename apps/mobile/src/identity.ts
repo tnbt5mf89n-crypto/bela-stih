@@ -3,10 +3,12 @@
  *
  * There are no accounts. The install ID is 16 random bytes made once, on the
  * first launch that needs it, and kept on the device; it names this
- * installation and nothing else, and it is sent to the server only at a join,
- * where it lives with the seat for as long as the seat does (never stored,
- * never logged - apps/server/src/identity.ts). Its uses: the block list below,
- * a report that names whom it is about, and the config's ban list.
+ * installation and nothing else, and it is sent to the server only at a join.
+ * The server keeps a one-way digest of it with the seat for as long as the
+ * seat does (never stored, never logged - apps/server/src/identity.ts), and
+ * that digest is what a table shows: the block list below holds the digests
+ * of others, a report names one, and the config's ban list lists them. Knowing
+ * a digest never lets anyone present it as their own.
  *
  * The block list is device-local and permanent until the player removes an
  * entry in Settings. It goes to the server at every join, in memory only:

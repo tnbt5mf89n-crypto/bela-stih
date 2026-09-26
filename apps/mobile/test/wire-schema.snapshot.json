@@ -248,6 +248,10 @@
    "waiting": "{ seat: Seat; msLeft: number; }[]"
   }
  },
+ "apps/server/src/protocol.ts:PlayMode": {
+  "kind": "other",
+  "text": "\"learn\" | \"easy\" | \"hard\""
+ },
  "packages/table/src/index.ts:TableEvent": {
   "kind": "union",
   "members": [

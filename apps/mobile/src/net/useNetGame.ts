@@ -128,7 +128,7 @@ export type NetStatus =
   | 'error';
 
 export interface SeatInfo {
-  /** The install ID this seat's app gave at its join (1.6.0): what a block or a report names. Absent for bots and older apps. */
+  /** A one-way digest of the install ID this seat's app gave at its join (1.6.0, the server's publishedId): what a block or a report names. Absent for bots and older apps. */
   installId?: string;
   seat: Seat;
   name: string;
@@ -234,6 +234,8 @@ export function useNetGame(settings: Settings) {
   // A public table asks its player before strangers are heard; the answer holds for this table.
   const [voiceOptIn, setVoiceOptIn] = useState(false);
   const [optedIn, setOptedIn] = useState(false);
+  // The same answer for attach(), which says it again on a reconnect.
+  const optedInRef = useRef(false);
   // This installation, and whom it keeps away (identity.ts): read once, sent at every join.
   const installIdRef = useRef<string>(myInstallId());
   const blockedRef = useRef<string[]>(blockedIds(loadBlocked()));
@@ -294,6 +296,8 @@ export function useNetGame(settings: Settings) {
         mySeat: () => mySeatRef.current,
         view: () => directorRef.current?.getView() ?? null,
         reduced: () => motionRef.current === 'reduced',
+        // Settings' tempo stretches the director's beats, so the sprites must keep step.
+        tempo: () => tempoRef.current,
       }),
     [anchors, fxBus, lang],
   );
@@ -502,9 +506,16 @@ export function useNetGame(settings: Settings) {
       hiddenRoomRef.current = room.roomId;
       hiddenRef.current = [];
       setHidden([]);
+      optedInRef.current = false;
       setOptedIn(false);
       mutedRef.current = [];
       setMuted([]);
+    } else if (optedInRef.current) {
+      // An opt-in said while the line was down (or sent into a dying socket)
+      // never reached the room, and the room keeps the seat's old answer
+      // across a reconnect: say it again. Twice is harmless, the room ignores
+      // an answer it already has.
+      room.send('voiceIn', { on: true });
     }
 
     room.onMessage('view', (msg: { seat: Seat; view: PublicView }) => {
@@ -996,6 +1007,7 @@ export function useNetGame(settings: Settings) {
   }, []);
   /** At a public table: hear strangers' clips here (or stop). The server relays nothing to a seat that did not ask. */
   const voiceIn = useCallback((on: boolean) => {
+    optedInRef.current = on;
     roomRef.current?.send('voiceIn', { on });
     setOptedIn(on);
   }, []);
@@ -1003,7 +1015,8 @@ export function useNetGame(settings: Settings) {
    * Block a player for good, on this device (identity.ts): quick play never
    * seats us together again, and nothing of theirs reaches us at any table.
    * Hides them for this table too. An older app's seat has no ID to block, so
-   * it is only hidden; the answer says which.
+   * it is only hidden; the answer says which. (The table offers Block only on
+   * a seat with an ID - SeatMeta.blockable - so the button's "for good" holds.)
    */
   const block = useCallback(
     (s: Seat): boolean => {

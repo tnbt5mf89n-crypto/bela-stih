@@ -21,7 +21,7 @@ export function useVoicePlayback(
   enabled: boolean,
   blocked: (s: Seat) => boolean,
   blockedKey: string,
-  /** A clip has really started playing here: its speaker is told (the receipt). */
+  /** A clip has been played here to its end: its speaker is told (the receipt). */
   onPlayed?: (id: number) => void,
 ) {
   const [speaking, setSpeaking] = useState<Seat | null>(null);
@@ -59,10 +59,12 @@ export function useVoicePlayback(
     current.current = { from: clip.from, stop };
     try {
       src = clipSource(clip.data, clip.mime, clip.id);
-      // The receipt goes when the clip has been heard to the END (1.6.0), at the
-      // player's voice volume, corrected by the sender's loudness header.
-      playback = playClip(src.uri, masterVolume() * voiceVolume() * gainForLoudness(clip.loudness), () => {
-        onPlayedRef.current?.(clip.id);
+      // The receipt goes when the clip has been heard to the END (1.6.0), and
+      // only then: a clip the browser could not play, or was not allowed to,
+      // ends at once unheard. At the player's voice volume, corrected by the
+      // sender's loudness header.
+      playback = playClip(src.uri, masterVolume() * voiceVolume() * gainForLoudness(clip.loudness), (heard) => {
+        if (heard) onPlayedRef.current?.(clip.id);
         stop();
       });
     } catch {

@@ -22,7 +22,18 @@ if (typeof g.Buffer === 'undefined') {
   g.Buffer = Buffer;
 }
 
-if (typeof g.localStorage === 'undefined') {
+// A browser that blocks site data throws from the localStorage getter itself,
+// and this check ran as the bundle loaded: the web app never started. There
+// is a localStorage there, only a locked one, and colyseus.js reads it in its
+// own try/catch and falls back, so it gets no shim; it only must not crash.
+let missing = false;
+try {
+  missing = typeof g.localStorage === 'undefined';
+} catch {
+  // storage blocked: leave it to colyseus.js
+}
+
+if (missing) {
   const shim: Storage = {
     get length() {
       return 0;

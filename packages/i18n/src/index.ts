@@ -342,7 +342,7 @@ export interface UiStrings {
   tempoSlow: string;
   tempoNormal: string;
   tempoFast: string;
-  /** Haptics one notch lighter, or as designed (1.6.0). */
+  /** Haptic impacts one notch lighter, or as designed (1.6.0). */
   hapticStrengthLabel: string;
   hapticStrengthSoft: string;
   hapticStrengthFull: string;

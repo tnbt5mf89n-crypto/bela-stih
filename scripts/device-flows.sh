@@ -28,10 +28,14 @@ run() {
 
 if [ -z "$ONLY" ] || [ "$ONLY" = 04 ]; then
   echo "== 04: a deal, then twenty turns of the phone"
+  # Whatever happens below, the phone turns by itself again afterwards.
+  trap 'adb shell settings put system user_rotation 0; adb shell settings put system accelerometer_rotation 1' EXIT
   adb shell settings put system accelerometer_rotation 0
   adb shell am force-stop com.slfresh.belastih
   # Into an offline table (the first half of flow 02, stopped once the fan shows).
-  "$MAESTRO" --device "$ANDROID_SERIAL" test - <<'EOF'
+  # Maestro reads flows from files only, so the inline one goes through a temp file.
+  FLOW=$(mktemp -t bela-flow-XXXX.yaml 2>/dev/null || echo "${TMPDIR:-/tmp}/bela-flow-$$.yaml")
+  cat > "$FLOW" <<'EOF'
 appId: com.slfresh.belastih
 ---
 - launchApp
@@ -46,6 +50,8 @@ appId: com.slfresh.belastih
       id: "card-.*"
     timeout: 20000
 EOF
+  "$MAESTRO" --device "$ANDROID_SERIAL" test "$FLOW"
+  rm -f "$FLOW"
   for i in $(seq 1 20); do
     adb shell settings put system user_rotation $(( i % 2 ))
     sleep 1.5

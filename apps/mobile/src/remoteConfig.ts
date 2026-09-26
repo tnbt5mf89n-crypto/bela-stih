@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { PROTO } from './net/proto';
 import { SERVER_URL } from './net/useNetGame';
 import { kvGet, kvSet } from './storage';
 
@@ -8,13 +7,14 @@ import { kvGet, kvSet } from './storage';
  * /health, which the server fills from its config.json (apps/server/src/
  * config.ts). The server enforces every switch itself; the app reads them so
  * a feature that was turned off is not offered - a mic that records into a
- * void, a gift nobody gets - and so an app the server will no longer admit
- * says "update" before it tries. Cached on the device, so the last answer
- * applies from the first frame; refreshed at launch and every five minutes.
+ * void, a gift nobody gets. (An app the server no longer admits learns it
+ * from the door's refusal, with the way to the store beside it, and a server
+ * closed for a moment says so the same way: net/trouble.ts.) A server from
+ * before 1.6.0 answers /health without the block: it has no switches, so
+ * nothing is off. Cached on the device, so the last answer applies from the
+ * first frame; refreshed at launch and every five minutes.
  */
 export interface AppConfig {
-  minProto: number;
-  maintenance: boolean;
   voice: boolean;
   strangerClips: boolean;
   gifts: boolean;
@@ -24,8 +24,6 @@ export interface AppConfig {
 }
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
-  minProto: 0,
-  maintenance: false,
   voice: true,
   strangerClips: true,
   gifts: true,
@@ -45,8 +43,6 @@ export function parseAppConfig(health: unknown, now: number): AppConfig | null {
   const o = c as Record<string, unknown>;
   const bool = (k: keyof AppConfig): boolean => (typeof o[k] === 'boolean' ? (o[k] as boolean) : (DEFAULT_APP_CONFIG[k] as boolean));
   return {
-    minProto: typeof o.minProto === 'number' && Number.isInteger(o.minProto) && o.minProto >= 0 ? o.minProto : 0,
-    maintenance: bool('maintenance'),
     voice: bool('voice'),
     strangerClips: bool('strangerClips'),
     gifts: bool('gifts'),
@@ -55,9 +51,9 @@ export function parseAppConfig(health: unknown, now: number): AppConfig | null {
   };
 }
 
-/** This app is older than the server admits: say "update" before a join fails. */
-export function appTooOld(cfg: AppConfig): boolean {
-  return cfg.minProto > PROTO;
+/** A /health answer from a server from before 1.6.0: up (`ok`), and no `config` block at all. */
+function switchless(health: unknown): boolean {
+  return health !== null && typeof health === 'object' && (health as { ok?: unknown }).ok === true && !('config' in health);
 }
 
 function cached(): AppConfig {
@@ -77,7 +73,12 @@ export async function fetchAppConfig(url = HEALTH_URL, now = Date.now()): Promis
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
-    const c = parseAppConfig(await res.json(), now);
+    const health: unknown = await res.json();
+    // A server from before 1.6.0 (one a rollback brings back) has no switches,
+    // so nothing is off there: a kill cached from a newer server must not
+    // outlive it and keep the mic and the gifts hidden. Anything else without
+    // a readable block (an outage, a garbled answer) keeps the last one.
+    const c = parseAppConfig(health, now) ?? (switchless(health) ? { ...DEFAULT_APP_CONFIG, fetchedAt: now } : null);
     if (c) kvSet(KEY, JSON.stringify(c));
     return c;
   } catch {

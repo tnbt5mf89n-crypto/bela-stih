@@ -19,8 +19,14 @@ services:
         GIT_SHA: ${BELA_TAG:-dev}
     restart: unless-stopped
     environment:
-      # The kill switch (apps/server/src/config.ts), served by caddy from ./site.
-      CONFIG_URL: https://${DOMAIN}/config.json
+      # The kill switch (apps/server/src/config.ts), read from disk: it lists
+      # banned installations, so only this container sees it - caddy never
+      # serves it, and the app reads the switches from /health.
+      CONFIG_FILE: /etc/bela/config.json
+    volumes:
+      # The directory, not the file: an edit that replaces the file (a new
+      # inode) is still seen, where a single-file mount keeps the old one.
+      - ./private:/etc/bela:ro
     # Marks the container unhealthy when it stops answering /health, so
     # `docker compose ps` says so where a hung event loop used to sit there
     # "Up" while every table was dead. Nothing restarts it by itself (plain

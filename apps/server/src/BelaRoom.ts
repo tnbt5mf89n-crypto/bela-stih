@@ -6,7 +6,7 @@ import type { Card, Rank, Rng, Suit } from '@belot/engine';
 import { Table } from '@belot/table';
 import { EMOTE_GAP_MS, EMOTE_IDS, GIFT_GAP_MS, GIFT_IDS, MATCH_TARGETS, MIN_PROTO, MSG, NEXT_DEAL_MS, PAUSE_MAX_MS, TURN_CHOICES, UPDATE_APP_CODE, WAIT_FOR_DROPPED_MS, type ClientMessage, type HoldInfo, type EmoteMessage, type GiftMessage, type JoinGifts, type JoinProto, type JoinVoice, type RoomMessage, type SeatInfo, type VoiceHeardMessage, type VoiceMessage, isPlayMode, modeFromLegacy, type PlayMode, BANNED_CODE, BLOCKED_CODE, MAINTENANCE_CODE, type JoinIdentity } from './protocol';
 import { config } from './config';
-import { blocksEither, cleanBlockList, cleanInstallId, type Identity } from './identity';
+import { blocksEither, cleanBlockList, cleanInstallId, publishedId, type Identity } from './identity';
 import { checkClip, VoiceLedger, VoiceLimiter, loudnessOf } from './voice';
 import { cleanName } from './names';
 import { tableCode } from './codes';
@@ -146,7 +146,7 @@ interface Occupant {
   receipts: boolean;
   /** The wire generation the app joined with (protocol.ts PROTO); 0 for an app from before the handshake. */
   proto: number;
-  /** The app's install ID and block list (identity.ts): in memory, with the seat, and nowhere else. */
+  /** The digest of the app's install ID, and its block list (identity.ts): in memory, with the seat, and nowhere else. */
   installId: string;
   blocked: ReadonlySet<string>;
   /** At a public table: this player asked for strangers' clips here ('voiceIn'). */
@@ -356,7 +356,10 @@ export class BelaRoom extends Room {
     // (protocol.ts: the generation; the config can raise the floor without a deploy).
     if (protoOf(options) < Math.max(MIN_PROTO, cfg.minProto)) throw new ServerError(UPDATE_APP_CODE, 'update the app');
     const id = options as JoinIdentity | undefined;
-    const installId = cleanInstallId(id?.installId);
+    // The ID the app sent goes no further: the ban check, blocks, the seat and
+    // so every report know the installation by its digest (identity.ts), which
+    // a table sees but nobody can present as their own ID.
+    const installId = publishedId(cleanInstallId(id?.installId));
     if (installId !== '' && cfg.banned.has(installId)) throw new ServerError(BANNED_CODE, 'banned');
     const blocked = cleanBlockList(id?.blocked);
     const origin = originOf(context);
@@ -893,10 +896,16 @@ export class BelaRoom extends Room {
       // nothing but a picture beside their name.
       for (const t of to) this.gifts[t] = id;
       const msg: GiftMessage = { from: seat, to, id };
-      // Broadcast only: no publish(), so a gift never re-sends views or wakes a
-      // director. The badge rides along in SeatInfo on the next publish, which
-      // is what a reconnecting player reads.
-      this.broadcast(MSG.gift, msg);
+      // Sent, not published: no publish(), so a gift never re-sends views or
+      // wakes a director. The badge rides along in SeatInfo on the next publish,
+      // which is what a reconnecting player reads. Like an emote, to everyone the
+      // sender can reach (identity.ts) and to the sender, who pays on this echo:
+      // a gift between two others must not fly past someone who blocked either.
+      for (const other of this.clients) {
+        const s = this.seatOf(other.sessionId);
+        if (s !== null && s !== seat && !this.reaches(seat, s)) continue;
+        other.send(MSG.gift, msg);
+      }
     }
   }
 
@@ -1166,7 +1175,7 @@ export class BelaRoom extends Room {
       bot: !this.table.humanSeats.has(i as Seat),
       ...(this.gifts[i] ? { gift: this.gifts[i]! } : {}),
       ...(this.seesGifts(i as Seat) ? { seesGifts: true as const } : {}),
-      // The one thing about a seat an app can block or report by (identity.ts).
+      // The one thing about a seat an app can block or report by: the digest, never the ID its app sent (identity.ts).
       ...(o.sessionId !== null && o.installId !== '' ? { installId: o.installId } : {}),
       // Whom a clip reaches: at a public table only a seat that opted in, while strangers' clips are allowed at all.
       ...(o.sessionId !== null && o.voice && (!this.isPublic || (o.voiceIn && config().strangerClips)) ? { hearsVoice: true as const } : {}),

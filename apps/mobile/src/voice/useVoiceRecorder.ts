@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import { dropTake, readTake } from './clipFiles';
 import {
+  meanDb,
   recordingOptions,
   sniffMime,
   VOICE_MAX_BYTES,
@@ -17,14 +18,8 @@ export interface Take {
   mime: VoiceMime;
   ms: number;
   data: Uint8Array;
-  /** The average level while recording, dBFS; undefined where the recorder gives none (the web). */
+  /** The average level while recording, dBFS (voice.ts meanDb); undefined when no level was heard. */
   loudness?: number;
-}
-
-/** The mean of the levels sampled, or nothing when there were none. */
-function meanDb(xs: readonly number[]): number | undefined {
-  if (xs.length === 0) return undefined;
-  return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
 /** How a press ended: sent, too short to mean anything, slid off, the mic refused, or the phone failed us. */
@@ -199,6 +194,10 @@ export function useVoiceRecorder(onTake: (take: Take) => void): VoiceMic {
   useEffect(
     () => () => {
       if (limit.current) clearTimeout(limit.current);
+      // Whatever the phase: for a take the screen closes on, finish() never
+      // gets this far (MicButton's own finish(true) comes after this cleanup
+      // and finds the phase idle), and the interval would outlive the screen.
+      stopMetering();
       holding.current = false;
       if (phaseRef.current !== 'recording') return;
       phaseRef.current = 'idle';

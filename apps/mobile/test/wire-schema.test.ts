@@ -20,7 +20,7 @@ const ROOT = join(here, '..', '..', '..');
 const SNAPSHOT = join(here, 'wire-schema.snapshot.json');
 
 const WANTED: Record<string, string[]> = {
-  'apps/server/src/protocol.ts': ['ClientMessage', 'RoomMessage', 'SeatInfo', 'VoiceMessage', 'VoiceHeardMessage', 'EmoteMessage', 'GiftMessage', 'JoinGifts', 'JoinVoice', 'JoinProto', 'JoinIdentity', 'HoldInfo'],
+  'apps/server/src/protocol.ts': ['ClientMessage', 'RoomMessage', 'SeatInfo', 'VoiceMessage', 'VoiceHeardMessage', 'EmoteMessage', 'GiftMessage', 'JoinGifts', 'JoinVoice', 'JoinProto', 'JoinIdentity', 'HoldInfo', 'PlayMode'],
   'packages/table/src/index.ts': ['TableEvent'],
   // Everything a view or an action is made of, spelled out - a named type printed by its name
   // (`Phase`, `Card[]`) would let its members change unseen.
@@ -55,7 +55,9 @@ function describeTypes(): Record<string, Shape> {
     const rec: Record<string, string> = {};
     for (const p of props) {
       const decl = p.valueDeclaration ?? p.declarations?.[0];
-      const pt = decl ? checker.getTypeOfSymbolAtLocation(p, decl) : checker.getDeclaredTypeOfSymbol(p);
+      // A mapped type's properties (Record<Seat, number>) have no declaration; getDeclaredTypeOfSymbol
+      // gives a property symbol the error type, which printed every one of them as `any`.
+      const pt = decl ? checker.getTypeOfSymbolAtLocation(p, decl) : checker.getTypeOfSymbol(p);
       const optional = (p.flags & ts.SymbolFlags.Optional) !== 0;
       rec[p.name + (optional ? '?' : '')] = checker.typeToString(pt, undefined, flags);
     }
@@ -107,6 +109,17 @@ describe('the wire schema', () => {
   const now = describeTypes();
 
   it('only ever grows: no message, field or event an app in the wild reads may go or change', () => {
+    // A type the checker could not resolve prints as any/error and pins nothing: not as a whole type,
+    // not as a union member, not in any field (`ghost?: any`, `any[]`, `{ deep: any; }`). Checked
+    // before either write below, so such a type never reaches the snapshot. String literals are
+    // blanked first (a literal "any" is a value, not a type), and a word followed by `:` is a field's name.
+    const texts = (s: Shape): string[] => (s.kind === 'object' ? Object.values(s.props) : s.kind === 'union' ? s.members.flatMap(texts) : [s.text]);
+    const unresolved = Object.entries(now).flatMap(([name, s]) =>
+      texts(s)
+        .filter((t) => /\b(any|error|unknown)\b(?!\??:)/.test(t.replace(/"(?:[^"\\]|\\.)*"/g, '""')))
+        .map((t) => `${name}: ${t}`),
+    );
+    expect(unresolved, unresolved.join('\n')).toEqual([]);
     // The snapshot is compared BEFORE it is refreshed: SCHEMA_UPDATE accepts additions, never a removal.
     if (!existsSync(SNAPSHOT) && process.env.SCHEMA_UPDATE) writeFileSync(SNAPSHOT, JSON.stringify(now, null, 1) + '\n');
     expect(existsSync(SNAPSHOT), 'no snapshot: run once with SCHEMA_UPDATE=1').toBe(true);
@@ -118,23 +131,28 @@ describe('the wire schema', () => {
     }
     // What the APP sends: a new REQUIRED field there is a field an older app never sends, so the
     // server must treat it as optional. Only optional additions are additive in that direction.
-    const clientNow = now['apps/server/src/protocol.ts:ClientMessage'];
-    const clientWas = was['apps/server/src/protocol.ts:ClientMessage'];
-    if (clientNow?.kind === 'union' && clientWas?.kind === 'union') {
-      for (const m of clientNow.members) {
-        if (m.kind !== 'object') continue;
-        const tag = m.props['type'];
-        const before = clientWas.members.find((w) => w.kind === 'object' && w.props['type'] === tag);
-        if (!before || before.kind !== 'object') continue;
-        for (const k of Object.keys(m.props)) {
-          if (!(k in before.props) && !k.endsWith('?')) problems.push(`ClientMessage[${tag}].${k} is a new REQUIRED field: an app in the wild never sends it`);
-        }
+    // That is ClientMessage, and the join options (the Join* types) every app sends at the door.
+    const newRequired = (m: Shape, before: Shape, path: string): void => {
+      if (m.kind !== 'object' || before.kind !== 'object') return;
+      for (const k of Object.keys(m.props)) {
+        if (!(k in before.props) && !k.endsWith('?')) problems.push(`${path}.${k} is a new REQUIRED field: an app in the wild never sends it`);
       }
+    };
+    for (const name of WANTED['apps/server/src/protocol.ts']!.filter((n) => n === 'ClientMessage' || n.startsWith('Join'))) {
+      const n = now[`apps/server/src/protocol.ts:${name}`];
+      // A join option type new to the snapshot is new all through: no app in the wild sends any of it yet.
+      const w: Shape = was[`apps/server/src/protocol.ts:${name}`] ?? { kind: 'object', props: {} };
+      if (n?.kind === 'union' && w.kind === 'union') {
+        for (const m of n.members) {
+          if (m.kind !== 'object') continue;
+          const tag = m.props['type'];
+          const before = w.members.find((x) => x.kind === 'object' && x.props['type'] === tag);
+          if (before) newRequired(m, before, `${name}[${tag}]`);
+        }
+      } else if (n) newRequired(n, w, name);
     }
     expect(problems, problems.join('\n')).toEqual([]);
     if (process.env.SCHEMA_UPDATE) writeFileSync(SNAPSHOT, JSON.stringify(now, null, 1) + '\n');
-    // A type the checker could not resolve prints as any/error and would pin nothing: never in the snapshot.
-    expect(JSON.stringify(now)).not.toMatch(/"text":"(any|error|unknown)"/);
     // Additions are fine, but the snapshot must say so: an unsnapshotted addition is a forgotten one.
     if (!process.env.SCHEMA_UPDATE) {
       expect(JSON.stringify(now), 'the wire grew: refresh the snapshot with SCHEMA_UPDATE=1 and say what was added').toBe(JSON.stringify(was));
@@ -155,6 +173,8 @@ describe('the wire schema', () => {
     // The named types are written as their members, and the re-exported result as its fields.
     expect((now['packages/shared-types/src/index.ts:Phase'] as { text: string }).text).toContain('"BID"');
     expect((now['packages/shared-types/src/index.ts:Suit'] as { text: string }).text).toContain('"hearts"');
+    // Every app since 1.4.3 may ask for 'learn' in 'rules' and reads it back in the room's `mode`.
+    expect((now['apps/server/src/protocol.ts:PlayMode'] as { text: string }).text).toContain('"learn"');
     const result = now['packages/engine/src/index.ts:DealScoreResult']!;
     expect(result.kind).toBe('object');
     for (const k of ['finalScore', 'callerMade', 'renonsSeat?', 'declarationPoints']) expect((result as { props: Record<string, string> }).props, k).toHaveProperty(k);

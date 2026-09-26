@@ -33,7 +33,7 @@ export function ScreenShell({
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: room().page }]}>
       <View style={styles.header}>
-        <PressScale onPress={onBack} hitSlop={12} accessibilityLabel={backLabel} style={styles.backButton}>
+        <PressScale onPress={onBack} hitSlop={12} accessibilityLabel={backLabel} testID="back" style={styles.backButton}>
           <Chevron size={28} />
         </PressScale>
         <Text style={styles.title}>{title}</Text>

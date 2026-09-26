@@ -67,3 +67,16 @@ describe('the guardrails', () => {
     expect(read('apps/mobile/public/index.html')).toMatch(/<link rel="manifest" href="manifest\.webmanifest" \/>/);
   });
 });
+
+describe('the Play release notes', () => {
+  const md = read('docs/play-store.md').replace(/\r\n/g, '\n');
+  const notes = [...md.matchAll(/^- (hr|sr|en)\b[^:\n]*: \*([\s\S]*?)\*$/gm)]
+    .map((m) => ({ lang: m[1], text: m[2].split('\n').map((s) => s.trim()).join(' ') }));
+  it("fit Play's 500 characters per language", () => {
+    expect(notes.length).toBeGreaterThanOrEqual(24);
+    for (const n of notes) expect([...n.text].length, `${n.lang}: ${n.text.slice(0, 40)}`).toBeLessThanOrEqual(500);
+  });
+  it('call XP "XP": bodovi / поени are the score on the sheet', () => {
+    expect(md).not.toMatch(/nose bodove|носе поене|носе бодове/);
+  });
+});

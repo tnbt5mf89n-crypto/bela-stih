@@ -2,19 +2,21 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { blocksEither, cleanBlockList, cleanInstallId } from '../../server/src/identity';
+import { blocksEither, cleanBlockList, cleanInstallId, publishedId } from '../../server/src/identity';
 import { BANNED_CODE, BLOCKED_CODE, BLOCK_LIST_MAX, INSTALL_ID_RE, MAINTENANCE_CODE } from '../../server/src/protocol';
 import { BANNED_CODE as APP_BANNED, BLOCKED_CODE as APP_BLOCKED, MAINTENANCE_CODE as APP_MAINTENANCE } from '../src/net/proto';
 
 /**
- * Install IDs and block lists: what the door accepts, and the one rule that
- * follows from them - two people who have blocked each other are never seated
- * together in quick play and never reach each other with a clip, an emote or
- * a gift.
+ * Install IDs and block lists: what the door accepts, what a table sees of an
+ * ID (a one-way digest, never the ID), that the server logs neither, and the
+ * one rule that follows from them - two people who have blocked each other
+ * are never seated together in quick play and never reach each other with a
+ * clip, an emote or a gift.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const room = readFileSync(join(here, '../../server/src/BelaRoom.ts'), 'utf8');
+const server = (f: string) => readFileSync(join(here, '../../server/src', f), 'utf8');
+const room = server('BelaRoom.ts');
 const A = 'a'.repeat(32);
 const B = 'b'.repeat(32);
 
@@ -27,6 +29,20 @@ describe('identity at the door', () => {
     const many = Array.from({ length: BLOCK_LIST_MAX + 3 }, (_, i) => i.toString(16).padStart(32, '0'));
     expect(cleanBlockList(many).size).toBe(BLOCK_LIST_MAX);
     expect(INSTALL_ID_RE.test(A)).toBe(true);
+  });
+
+  it('a table sees a one-way digest of the ID, shaped like one, and never the ID itself', () => {
+    const p = publishedId(A);
+    expect(p).toMatch(INSTALL_ID_RE);
+    expect(p).not.toBe(A);
+    // Blocks kept on phones and bans in config.json hold these values: the digest can never change.
+    expect(p).toBe('3ba3f5f43b92602683c19aee62a20342');
+    expect(publishedId(B)).not.toBe(p);
+    // Sending a digest seen at a table gets the digest of it, never the seat it was copied from.
+    expect(publishedId(p)).not.toBe(p);
+    expect(publishedId('')).toBe('');
+    // What an app keeps and sends back, a list of digests, passes the door as it is.
+    expect([...cleanBlockList([p])]).toEqual([p]);
   });
 
   it('blocks either way, and an app without an ID can block but cannot be blocked', () => {
@@ -50,6 +66,11 @@ describe('identity at the door', () => {
 
   it('the room seats nobody against a block at a public table, and relays nothing across one anywhere', () => {
     const auth = room.slice(room.indexOf('override onAuth('), room.indexOf('override onJoin('));
+    // The ID the app sent stops at the door: the ban check, the blocks and the seat all hold its digest.
+    expect(auth).toMatch(/const installId = publishedId\(cleanInstallId\(id\?\.installId\)\);/);
+    expect(room.match(/cleanInstallId\(/g)).toHaveLength(1);
+    expect(auth).toMatch(/cfg\.banned\.has\(installId\)/);
+    expect(auth).toMatch(/return \{ origin, installId, blocked \};/);
     expect(auth).toMatch(/this\.isPublic[\s\S]*blocksEither\(me, o\)[\s\S]*BLOCKED_CODE/);
     // Held seats count too: `sessionId !== null`, not `connected`.
     expect(auth).toMatch(/o\.sessionId !== null && blocksEither\(me, o\)/);
@@ -59,13 +80,49 @@ describe('identity at the door', () => {
     const emote = room.slice(room.indexOf("packet.type === 'emote'"), room.indexOf("packet.type === 'voice'"));
     expect(emote).toMatch(/this\.reaches\(seat, s\)/);
     expect(emote).not.toMatch(/this\.broadcast\(MSG\.emote/);
-    const gift = room.slice(room.indexOf("packet.type === 'gift'"), room.indexOf("packet.type === 'gift'") + 2500);
+    const gift = room.slice(room.indexOf("packet.type === 'gift'"), room.indexOf('private afterMove()'));
     expect(gift).toMatch(/this\.seesGifts\(t\) && this\.reaches\(seat, t\)/);
-    // The ID goes out with the seat (it is what a block or a report names); the list never, and neither is logged.
+    // And it is delivered as an emote is, never to the whole room: a gift between two others
+    // must not fly past someone who blocked either of them.
+    expect(room).not.toMatch(/this\.broadcast\(MSG\.gift/);
+    expect(gift).toMatch(/!this\.reaches\(seat, s\)\) continue;\s*other\.send\(MSG\.gift, msg\);/);
+    // The digest goes out with the seat (it is what a block or a report names); the list never.
     const seatInfo = room.slice(room.indexOf('private seatInfo()'), room.indexOf('private publish()'));
     expect(seatInfo).toMatch(/installId: o\.installId/);
     expect(seatInfo).not.toMatch(/blocked/);
-    expect(room).not.toMatch(/console\.(log|error)\([^)]*(installId|blocked)/);
+  });
+
+  it('logs neither: every line the server process can print is pinned', () => {
+    // The process is index.ts and what it imports, followed file by file; the smoke, fill and
+    // transcript tools are its clients. A new print fails here, whatever it prints, until read.
+    const runtime = new Set<string>();
+    const visit = (f: string): void => {
+      if (runtime.has(f)) return;
+      runtime.add(f);
+      for (const m of server(f).matchAll(/(?:from|import)\s*\(?\s*'\.\/([^']+)'/g)) visit(`${m[1]!.replace(/\.[jt]s$/, '')}.ts`);
+    };
+    visit('index.ts');
+    for (const f of ['BelaRoom.ts', 'identity.ts', 'config.ts']) expect(runtime.has(f), f).toBe(true);
+    const prints = [...runtime].sort().flatMap((f) =>
+      server(f).split('\n').filter((l) => /\bconsole\b|process\.std(out|err)/.test(l)).map((l) => `${f}: ${l.trim()}`),
+    );
+    expect(prints).toEqual([
+      "BelaRoom.ts: console.error(`[bela] message ${String(type)} failed:`, err);",
+      "BelaRoom.ts: console.error('[bela] next-deal timer failed:', err);",
+      "BelaRoom.ts: console.error('[bela] hold timer failed:', err);",
+      "BelaRoom.ts: console.error('[bela] turn timer failed:', err);",
+      "config.ts: if (JSON.stringify(before) !== JSON.stringify(after)) console.log(`[bela] config (${from}): ${JSON.stringify(after)}`);",
+      "config.ts: console.error(`[bela] ${lastError}`);",
+      "config.ts: if (msg !== lastError) console.error(`[bela] config ${from}: ${msg} (keeping the last one)`);",
+      "index.ts: console.error('[bela] uncaught exception (server stays up):', err);",
+      "index.ts: console.error('[bela] unhandled rejection (server stays up):', reason);",
+      "index.ts: .then(() => console.log(`[bela] listening on :${PORT}`))",
+      "index.ts: console.error('[bela] failed to start', err);",
+    ]);
+    // That config line, and /health, say how many bans there are, never which.
+    const cfg = server('config.ts');
+    const summary = cfg.slice(cfg.indexOf('function summary('), cfg.indexOf('export function configStatus('));
+    expect(summary.match(/c\.banned(\.\w+)?/g)).toEqual(['c.banned.size']);
   });
 
   it('stranger clips need a receive opt-in at a public table, and an older app counts as not opted in', () => {

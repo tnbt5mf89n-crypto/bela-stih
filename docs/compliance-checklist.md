@@ -65,20 +65,29 @@ keep it that way.
   so in one clause. From 1.6.0 a receipt means the clip was heard to the END.
 - Identity without accounts (1.6.0): the app makes itself a random install ID
   (16 bytes, once, kept on the device) and sends it at every join with the
-  IDs the player has blocked. The server keeps both in memory with the seat
-  and nowhere else - never stored, never logged - and publishes each seat's
-  ID to the others at that table, which is what a block or a report names
-  (`apps/server/src/identity.ts`, `apps/mobile/src/identity.ts`; pinned by
-  identity.test.ts, identity-client.test.ts, identity-smoke.ts). Uses: a
+  IDs the player has blocked. At the door the server replaces the ID with a
+  one-way digest of it (sha256, cut to the ID's 32 hex digits) and keeps
+  only that and the block list, in memory with the seat and nowhere else -
+  never stored, never logged (every line the server process can print is
+  pinned). Each seat's digest goes to the others at that table: it is what a
+  block keeps, a report names and `banned` lists, and as the door hashes
+  whatever it is sent, a digest copied from a table cannot be presented as
+  one's own ID (`apps/server/src/identity.ts`, `apps/mobile/src/identity.ts`;
+  pinned by identity.test.ts, identity-client.test.ts, identity-smoke.ts). Uses: a
   public table refuses a seat to anyone who has blocked, or is blocked by,
   someone there (4302); no clip, emote or gift crosses a block at any table;
   the operator can refuse an installation at the door (`banned` in
-  config.json, 4303). Data safety: the ID is a "Device or other ID" that
+  config.json, 4303): a report can lead to a ban, and the ban list then holds
+  the banned installation's digest on the server (deploy/private, read by the
+  game container alone and never served) until the ban is lifted. Data
+  safety: the ID is a "Device or other ID" that
   leaves the device, processed ephemerally (in memory for the join, like the
   moves) - under Play's ephemeral-processing rule it is not "collected"; the
   privacy page names it and what it is for. If it is ever stored (R5's
   accounts), the form changes. The block list is device-local and its player
-  can empty it in Settings.
+  can empty it in Settings. It holds digests: the digest came before 1.6.0
+  reached players, so no saved list holds a raw ID and nothing needs
+  migrating.
 - Strangers' clips (1.6.0): at a public table nobody hears strangers' voice
   messages until they opt in for that table (`voiceIn`; a 1.5.x app cannot,
   so it hears none), and the rules of conduct are shown and accepted once
@@ -110,8 +119,9 @@ keep it that way.
       stored; container logs ≤ a few days by rotation. Security:
       TLS, firewall (22/80/443 only), no persistence, no database.*
       *Second activity (1.3.1): handling player reports received by e-mail.
-      Data: reported nickname, table code, time, app version, the reporter's
-      e-mail address and message. Basis: Art. 6(1)(f). Recipient: the e-mail
+      Data: reported nickname, the digest of that player's installation ID
+      (1.6.0), table code, time, app version, the reporter's e-mail address
+      and message. Basis: Art. 6(1)(f). Recipient: the e-mail
       provider of the reports address. Retention: at most 90 days after the
       report is handled.*
 

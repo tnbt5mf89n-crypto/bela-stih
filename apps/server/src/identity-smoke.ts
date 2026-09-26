@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import WsWebSocket from 'ws';
 import type { Room } from 'colyseus.js';
 import { BANNED_CODE, BLOCKED_CODE, MSG, ROOM_NAME_MODES, type EmoteMessage, type GiftMessage, type RoomMessage, type VoiceMessage } from './protocol';
+import { publishedId } from './identity';
 
 /**
  * Install IDs, blocks, bans and the stranger-clip opt-in, against a live server:
@@ -10,13 +11,18 @@ import { BANNED_CODE, BLOCKED_CODE, MSG, ROOM_NAME_MODES, type EmoteMessage, typ
  *   npx tsx src/identity-smoke.ts                               # spawns its own server with a ban list
  *   SERVER_URL=wss://belastih.com npx tsx src/identity-smoke.ts  # production
  *
+ * - a table shows a digest of each app's install ID, never the ID, and an
+ *   app that presents a digest it saw sits down under a different one;
  * - a public table where somebody has blocked you (or you them) refuses the
  *   seat with BLOCKED_CODE, held seats included; a stranger with no ID is fine;
- * - a banned install ID is refused at the door with BANNED_CODE (own server only);
+ * - a banned install ID is refused at the door with BANNED_CODE, and a ban
+ *   from a report about an impostor never refuses the player it copied (own
+ *   server only);
  * - at a public table a clip reaches only the seats that said `voiceIn` -
  *   an app that joined with voice on but never opted in hears nothing;
- * - at a private table a block still stops clips, emotes and gifts both ways,
- *   and a gift with nobody left to reach is dropped without an echo.
+ * - at a private table a block still stops clips, emotes and gifts both ways
+ *   (a gift to a third player is not delivered across it either), and a gift
+ *   with nobody left to reach is dropped without an echo.
  *
  * Several seats at one PUBLIC table from one machine meet the room's own
  * one-seat-per-network rule (4300) before anything else. Against its own
@@ -122,10 +128,14 @@ async function ownServer(banned: string[]): Promise<ChildProcess> {
 
 async function main(): Promise<void> {
   const banned = newId();
+  // A player whose published ID an impostor copies from a table and sends as its own.
+  const victim = newId();
   let own: ChildProcess | null = null;
   let endpoint = process.env.SERVER_URL ?? '';
   if (!endpoint) {
-    own = await ownServer([banned]);
+    // A ban lists what a report names, a digest: the banned app's, and the one a
+    // table shows for the impostor (what a report about the impostor names).
+    own = await ownServer([publishedId(banned), publishedId(publishedId(victim))]);
     endpoint = `ws://127.0.0.1:${OWN_PORT}`;
   }
   const client = new Client(endpoint);
@@ -140,16 +150,18 @@ async function main(): Promise<void> {
   try {
     if (own) {
       // --- a public table, and the block both ways ---
+      // A keeps B as an app does: by the digest an earlier table showed for B.
       fromNewAddress();
-      const host = side(await client.create(ROOM_NAME_MODES, { ...base, name: 'A', installId: a, blocked: [b] }));
+      const host = side(await client.create(ROOM_NAME_MODES, { ...base, name: 'A', installId: a, blocked: [publishedId(b)] }));
       await wait(300);
       check(host.last?.private === undefined, 'the table is public');
       check(host.last?.voiceOptIn === true, 'and says stranger clips need an opt-in');
       const code = host.room.roomId;
       fromNewAddress();
       check((await refusedWith(client.joinById(code, { ...base, name: 'B', installId: b }))) === BLOCKED_CODE, `B, whom A blocked, is refused (${BLOCKED_CODE})`);
+      const shownA = host.last?.seats.find((s) => s.name === 'A')?.installId ?? '';
       fromNewAddress();
-      check((await refusedWith(client.joinById(code, { ...base, name: 'D', installId: newId(), blocked: [a] }))) === BLOCKED_CODE, 'D, who blocked A, is refused too');
+      check((await refusedWith(client.joinById(code, { ...base, name: 'D', installId: newId(), blocked: [shownA] }))) === BLOCKED_CODE, 'D, who blocked A by what the table shows for A, is refused too');
       fromNewAddress();
       const c = side(await client.joinById(code, { ...base, name: 'C', installId: newId() }));
       await wait(300);
@@ -183,6 +195,13 @@ async function main(): Promise<void> {
       check((await refusedWith(client.create(ROOM_NAME_MODES, { ...base, name: 'X', installId: banned }))) === BANNED_CODE, `a banned install is refused (${BANNED_CODE})`);
       fromNewAddress();
       check((await refusedWith(client.create(ROOM_NAME_MODES, { ...base, name: 'Y', installId: newId() }))) === null, 'an ID not on the list creates a table');
+      // An impostor sent the victim's published ID as its own and was reported: the report
+      // named the digest the table showed for the impostor, so the ban refuses the impostor...
+      fromNewAddress();
+      check((await refusedWith(client.create(ROOM_NAME_MODES, { ...base, name: 'I', installId: publishedId(victim) }))) === BANNED_CODE, "an impostor that sent another player's published ID is refused by the ban its report asked for");
+      // ...and never the player it copied.
+      fromNewAddress();
+      check((await refusedWith(client.create(ROOM_NAME_MODES, { ...base, name: 'V', installId: victim }))) === null, 'and the player it copied still creates a table');
     } else {
       // --- production: the spoofed address must count for nothing ---
       fromNewAddress();
@@ -201,11 +220,20 @@ async function main(): Promise<void> {
     const g = newId();
     fromNewAddress();
     const priv = side(await client.create(ROOM_NAME_MODES, { ...base, name: 'H', private: true, installId: h }));
+    await wait(300);
+    // What the table shows for H, and so what G's app keeps when G blocks H.
+    const shownH = priv.last?.seats.find((s) => s.name === 'H')?.installId ?? '';
+    check(shownH !== h && shownH === publishedId(h), "the table shows a digest of H's install ID, never the ID H's app sent");
     fromNewAddress();
-    const guest = side(await client.joinById(priv.room.roomId, { ...base, name: 'G', installId: g, blocked: [h] }));
+    const guest = side(await client.joinById(priv.room.roomId, { ...base, name: 'G', installId: g, blocked: [shownH] }));
     fromNewAddress();
     const third = side(await client.joinById(priv.room.roomId, { ...base, name: 'T', installId: newId() }));
+    // An app that sends the digest it saw for H as its own ID sits down, but as somebody else.
+    fromNewAddress();
+    const impostor = side(await client.joinById(priv.room.roomId, { ...base, name: 'I', installId: shownH }));
     await wait(300);
+    const shownI = impostor.last?.seats.find((s) => s.name === 'I')?.installId ?? '';
+    check(shownI !== shownH && shownI === publishedId(shownH), "an app that sends H's published ID is seated under a different one: it cannot wear it");
     check(guest.last !== null, 'a guest who blocked the host still sits at the private table');
     priv.room.send('emote', { id: 'bravo' });
     await wait(400);
@@ -223,7 +251,18 @@ async function main(): Promise<void> {
     priv.room.send('gift', { id: 'kava', to: gSeat });
     await wait(500);
     check(guest.gifts.length === 0 && priv.gifts.length === echoes, 'a gift to the guest who blocked the host is dropped, without an echo');
-    await Promise.all([priv.room.leave(true), guest.room.leave(true), third.room.leave(true)]);
+    // A gift between two others is delivered like an emote: to the seats its sender
+    // reaches, and back to the sender, who pays on that echo. (The dropped one above
+    // did not use the host's send window.)
+    const hSeat = priv.last!.seats.findIndex((s) => s.name === 'H');
+    const tSeat = priv.last!.seats.findIndex((s) => s.name === 'T');
+    priv.room.send('gift', { id: 'pivo', to: tSeat });
+    await wait(500);
+    check(third.gifts.some((m) => m.from === hSeat) && priv.gifts.some((m) => m.from === hSeat) && !guest.gifts.some((m) => m.from === hSeat), "the host's gift to the third player reaches them, and is not delivered to the guest who blocked the host");
+    guest.room.send('gift', { id: 'ruza', to: tSeat });
+    await wait(500);
+    check(third.gifts.some((m) => m.from === gSeat) && guest.gifts.some((m) => m.from === gSeat) && !priv.gifts.some((m) => m.from === gSeat), "and the guest's gift to the third player never reaches the host");
+    await Promise.all([priv.room.leave(true), guest.room.leave(true), third.room.leave(true), impostor.room.leave(true)]);
   } finally {
     own?.kill();
   }

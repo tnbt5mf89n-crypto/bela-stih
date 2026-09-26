@@ -90,27 +90,25 @@ before promoting.
 1.6.0 (versionCode 32: Play forms - Data safety unchanged on the ephemeral-processing basis (the install ID and block list live in memory for the join; see compliance-checklist.md); UGC answers already say block + report; NEW: the Child safety standards self-certification and CSAE contact in App content) -
 - hr: *Blokiraj igrača: trajno, na svom uređaju - u brzoj igri više ne sjedate
   za isti stol, a njegove poruke ne dolaze do tebe. Za stolom s nepoznatima
-  glasovne poruke čuješ tek kad ih uključiš. Pregled ruke nakon svakog
-  dijeljenja: tko je što odigrao. Tempo igre, jačina vibracije i velike karte u
-  postavkama. Karte se bacaju iz lepeze pod svojim kutom, a tinta na kartama
-  je čitljivija. Niz dnevnih bonusa se više ne gubi, samo pauzira; u Učenju
-  zvanja koja aplikacija sama nađe ne nose bodove, a kraće partije nose
-  manje.*
+  glasovne poruke čuješ tek kad ih uključiš. Pregled ruke nakon dijeljenja:
+  tko je što odigrao. Tempo igre, jačina vibracije i velike karte u
+  postavkama. Karte se bacaju iz lepeze pod svojim kutom, a tinta je
+  čitljivija. Niz dnevnih bonusa se više ne gubi, samo pauzira; u Učenju
+  zvanja koja aplikacija nađe ne donose XP, a kraće partije donose manje.*
 - sr: *Блокирај играча: трајно, на своме уређају - у брзој игри више не седате
   за исти сто, а његове поруке не стижу до тебе. За столом са непознатима
-  гласовне поруке чујеш тек кад их укључиш. Преглед руке након сваког дељења:
-  ко је шта одиграо. Темпо игре, јачина вибрације и велике карте у
-  подешавањима. Карте се бацају из лепезе под својим углом, а мастило на
-  картама је читљивије. Низ дневних бонуса се више не губи, само паузира; у
-  Учењу звања која апликација сама нађе не носе поене, а краће партије носе
-  мање.*
+  гласовне поруке чујеш тек кад их укључиш. Преглед руке након дељења: ко
+  је шта одиграо. Темпо игре, јачина вибрације и велике карте у
+  подешавањима. Карте се бацају из лепезе под својим углом, а мастило је
+  читљивије. Низ дневних бонуса се више не губи, само паузира; у Учењу
+  звања која апликација нађе не доносе XP, а краће партије доносе мање.*
 - en: *Block a player: for good, on your device - quick play never seats you
   together again and their messages never reach you. At a table with strangers
   you hear voice messages only once you turn them on. Review the deal after
   every hand: who played what. Pace, vibration strength and big cards in
-  Settings. Cards leave the fan at their own angle, and the ink on them reads
-  better. The daily streak pauses instead of resetting; in Learn mode the
-  zvanja the app finds for you earn no XP, and shorter matches pay less.*
+  Settings. Cards leave the fan at their own angle, and the ink reads better.
+  The daily streak pauses instead of resetting; in Learn mode the zvanja the
+  app finds earn no XP, and shorter matches pay less.*
 
 1.5.2 (versionCode 31: no Play form changes - nothing new is collected; a crash report is copied to the player's own clipboard and sent by the player, never by the app) -
 - hr: *Ako se aplikacija sruši, jednim dodirom kopiraš izvještaj o grešci i

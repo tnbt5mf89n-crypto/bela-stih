@@ -140,7 +140,7 @@ Nightly it runs the self-play harness over 100,000 deals.
 
 ## What the test suite guarantees
 
-`npm test` — **976 tests, all passing:**
+`npm test` — **1013 tests, all passing:**
 
 - **Two value systems, context-derived.** A card stores only `suit + rank`; power and points are
   derived from `{ contractType, trumpSuit }`. The same Jack is 20 in trump and 2 outside it.

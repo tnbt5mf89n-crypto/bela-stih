@@ -228,15 +228,21 @@ export const BLOCKED_CODE = 4302;
 export const BANNED_CODE = 4303;
 /** The server is closed for a moment (config.ts maintenance); tables already playing go on. */
 export const MAINTENANCE_CODE = 4304;
-/** An install ID: 32 hex digits the app made at random, once (apps/mobile/src/identity.ts). */
+/**
+ * An install ID: 32 hex digits the app made at random, once
+ * (apps/mobile/src/identity.ts). The digest a seat shows for it (identity.ts
+ * publishedId), and so every block and ban entry, has the same shape.
+ */
 export const INSTALL_ID_RE = /^[0-9a-f]{32}$/;
 /** A block list longer than this is truncated at the door. */
 export const BLOCK_LIST_MAX = 200;
 /**
  * What an app says about itself at the door (1.6.0), beside its name: a random
- * install ID and the install IDs it has blocked. Processed in memory only - a
- * public table never seats two people who have blocked each other, and no
- * clip, emote or gift crosses a block anywhere. Never stored, never published.
+ * install ID, and the IDs the tables showed for the players it has blocked.
+ * Processed in memory only - a public table never seats two people who have
+ * blocked each other, and no clip, emote or gift crosses a block anywhere.
+ * Never stored, never published: a seat shows only a one-way digest of the
+ * install ID (SeatInfo.installId).
  */
 export interface JoinIdentity {
   installId?: string;
@@ -301,8 +307,10 @@ export interface EmoteMessage {
 
 export interface SeatInfo {
   /**
-   * The install ID this seat's app gave at its join (1.6.0): the handle a block
-   * or a report names. Random and opaque; absent for bots and older apps.
+   * A one-way digest of the install ID this seat's app gave at its join (1.6.0,
+   * identity.ts publishedId): the handle a block, a report and a ban name.
+   * Opaque, and no use as an ID of one's own - the door would hash it again;
+   * absent for bots and older apps.
    */
   installId?: string;
   seat: Seat;

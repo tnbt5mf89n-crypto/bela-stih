@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +16,7 @@ vi.mock('expo-haptics', () => ({
 import * as Haptics from 'expo-haptics';
 import { androidConstantFor, PATTERNS, pattern, setAndroidHaptics, setHapticsEnabled, setHapticsStrength } from '../src/haptics';
 import { DEFAULT_TIMINGS, REDUCED_TIMINGS, REVEAL_MS, TEMPO_FACTOR, timingsFor } from '../src/anim/director';
+import { FLIGHT_MAX_MS, FLIGHT_MIN_MS } from '../src/anim/lifetimes';
 import { BIG_CARDS_FACTOR, computeTableMetrics } from '../src/table/metrics';
 import { fitHand } from '../src/table/geometry';
 import { depth, spring } from '../src/theme';
@@ -28,6 +30,8 @@ import { depth, spring } from '../src/theme';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '../src');
+// The app's own resolution of its dependencies, wherever the install hoisted them.
+const require = createRequire(join(here, '../package.json'));
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -39,13 +43,25 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe('motion tokens', () => {
-  it('are the four springs of the plan, mass 1, and lift alone overshoots', () => {
-    expect(spring.flight).toEqual({ stiffness: 380, damping: 31.2 });
-    expect(spring.lift).toEqual({ stiffness: 800, damping: 33.9 });
-    expect(spring.sheet).toEqual({ stiffness: 700, damping: 47.6 });
-    expect(spring.opacity).toEqual({ stiffness: 1600, damping: 80 });
+  it('are the four springs of the plan, each with its mass written out', () => {
+    expect(spring.flight).toEqual({ stiffness: 380, damping: 31.2, mass: 1 });
+    expect(spring.lift).toEqual({ stiffness: 800, damping: 33.9, mass: 1 });
+    expect(spring.sheet).toEqual({ stiffness: 700, damping: 47.6, mass: 1 });
+    expect(spring.opacity).toEqual({ stiffness: 1600, damping: 80, mass: 1 });
+  });
+
+  it('damp as designed at the mass withSpring really runs them at, and lift alone overshoots', () => {
+    // A token without a mass is not run at 1: withSpring spreads a default
+    // config under the caller's (GentleSpringConfig, mass 4, in Reanimated
+    // 4.5.1). Read that mass from the installed library, not from memory.
+    const dir = join(dirname(require.resolve('react-native-reanimated/package.json')), 'src/animation/spring');
+    const base = /const defaultConfig[^=]*=\s*\{\s*\.\.\.(\w+),/.exec(readFileSync(join(dir, 'spring.ts'), 'utf8'))?.[1];
+    const configs = readFileSync(join(dir, 'springConfigs.ts'), 'utf8');
+    const libMass = Number(new RegExp(`const ${base} = \\{[^}]*mass:\\s*([\\d.]+)`).exec(configs)?.[1]);
+    expect(libMass, `withSpring's default mass (from ${base})`).toBeGreaterThan(0);
     // Damping ratio = damping / (2 sqrt(k m)): under 1 overshoots.
-    const zeta = (s: { stiffness: number; damping: number }) => s.damping / (2 * Math.sqrt(s.stiffness));
+    const zeta = (s: { stiffness: number; damping: number; mass?: number }) =>
+      s.damping / (2 * Math.sqrt(s.stiffness * (s.mass ?? libMass)));
     expect(zeta(spring.lift)).toBeLessThan(1);
     expect(zeta(spring.lift)).toBeGreaterThan(0.5);
     for (const k of ['flight', 'sheet', 'opacity'] as const) expect(zeta(spring[k]), k).toBeGreaterThanOrEqual(0.8);
@@ -129,6 +145,43 @@ describe('haptics on Android', () => {
     setHapticsStrength('full');
   });
 
+  it('leave every notification and selection tick as designed under soft: they have no lighter notch', () => {
+    // "Blaža" softens impacts only (see HapticStrength): every other step
+    // plays the very call it plays at full strength, on Android and elsewhere.
+    const names = Object.keys(PATTERNS) as (keyof typeof PATTERNS)[];
+    const play = (s: 'soft' | 'full') => {
+      setHapticsStrength(s);
+      vi.useFakeTimers();
+      const out = names.map((name) => {
+        vi.clearAllMocks();
+        setAndroidHaptics(true);
+        pattern(name);
+        vi.advanceTimersByTime(400);
+        const android = vi.mocked(Haptics.performAndroidHapticsAsync).mock.calls.map((c) => c[0]);
+        setAndroidHaptics(false);
+        pattern(name);
+        vi.advanceTimersByTime(400);
+        const own = [vi.mocked(Haptics.notificationAsync).mock.calls, vi.mocked(Haptics.selectionAsync).mock.calls.length];
+        return { android, own };
+      });
+      vi.useRealTimers();
+      return out;
+    };
+    const full = play('full');
+    const soft = play('soft');
+    let asDesigned = 0;
+    names.forEach((name, n) => {
+      PATTERNS[name].forEach((step, i) => {
+        if (step.kind === 'impact') return;
+        asDesigned++;
+        expect(soft[n]!.android[i], `${name}, step ${i}`).toBe(full[n]!.android[i]);
+      });
+      expect(soft[n]!.own, name).toEqual(full[n]!.own);
+    });
+    expect(asDesigned).toBeGreaterThan(10);
+    setHapticsStrength('full');
+  });
+
   it("an opponent's card no longer buzzes, and the deal stays under twenty touches", () => {
     const feedback = readFileSync(join(SRC, 'feedback.ts'), 'utf8');
     expect(feedback).not.toMatch(/pattern\('land'\)/);
@@ -180,6 +233,36 @@ describe('a card in flight', () => {
     // Reduce-motion keeps its fade in place: no arc, no tilt.
     expect(o).toMatch(/fx\.fade\s*\?\s*\{\s*\/\/ Reduce-motion/);
   });
+
+  it('lands in the last 60 ms of its time (half, if shorter), not of its eased progress', () => {
+    const o = readFileSync(join(SRC, 'anim/EffectsOverlay.tsx'), 'utf8');
+    const flight = o.slice(o.indexOf('function Flight('), o.indexOf('function Deal('));
+    // p is eased: the flight's own settle expressions are driven through that
+    // easing over wall time, as the UI thread runs them.
+    expect(flight).toMatch(/p\.value = withTiming\(1, \{ duration: fx\.duration, easing: Easing\.out\(Easing\.cubic\) \}\);/);
+    const ease = (t: number) => 1 - (1 - t) ** 3;
+    const consts = [...flight.matchAll(/const (settle\w*) = (.*);/g)].map((m) => `const ${m[1]} = ${m[2]};`);
+    const bump = /\(1 \+ 0\.04 \* \((p\.value < \w+ \? .*)\)\),/.exec(flight)?.[1];
+    expect(consts.length).toBeGreaterThan(0);
+    expect(bump).toBeDefined();
+    const bumpAt = new Function('fx', 'p', `${consts.join('\n')}\nreturn ${bump};`) as (
+      fx: { duration: number },
+      p: { value: number },
+    ) => number;
+    // Every flight the spawner makes: the band, at half pace, at every tempo.
+    for (const band of [FLIGHT_MIN_MS, (FLIGHT_MIN_MS + FLIGHT_MAX_MS) / 2, FLIGHT_MAX_MS]) {
+      for (const d of [1, 0.5].flatMap((pace) => Object.values(TEMPO_FACTOR).map((f) => band * pace * f))) {
+        let peak = -1;
+        let peakAt = 0;
+        for (let t = 0; t <= d; t += 0.25) {
+          const b = bumpAt({ duration: d }, { value: ease(t / d) });
+          if (b > peak) [peak, peakAt] = [b, t];
+        }
+        expect(peak, `${d} ms`).toBeGreaterThan(0.99);
+        expect(d - peakAt, `${d} ms`).toBeCloseTo(Math.min(60, d / 2), 0);
+      }
+    }
+  });
 });
 
 describe('Pregled ruke', () => {
@@ -214,5 +297,17 @@ describe('Velike karte', () => {
     const land = computeTableMetrics(800, 360, { bigCards: true });
     expect(land.handCardMax).toBeLessThanOrEqual(Math.round(76 * BIG_CARDS_FACTOR));
     expect(land.handCardMax).toBeGreaterThanOrEqual(computeTableMetrics(800, 360).handCardMax);
+  });
+});
+
+describe('the tempo reaches the sprites', () => {
+  it('the tempo reaches both spawners: offline and online tell makeFxSpawner the setting', () => {
+    // The director stretches its beats by the tempo; a spawner that is not told keeps the normal
+    // pace and the deal's backs land before the fan is drawn (an empty hand at Polako).
+    for (const p of ['src/useGame.ts', 'src/net/useNetGame.ts']) {
+      const src = readFileSync(join(here, '..', p), 'utf8');
+      const call = src.slice(src.indexOf('makeFxSpawner({'), src.indexOf('}),', src.indexOf('makeFxSpawner({')));
+      expect(call, p).toMatch(/tempo: \(\) => /);
+    }
   });
 });

@@ -102,7 +102,7 @@ export interface Settings {
   voiceMode: VoiceMode;
   /** The director's pace (anim/director.ts): the beats stretch or tighten together. */
   tempo: Tempo;
-  /** "Jačina vibracije": every haptic one notch lighter, or as designed. */
+  /** "Jačina vibracije": every impact one notch lighter (notifications and selection ticks as designed), or all as designed. */
   hapticStrength: HapticStrength;
   /** "Velike karte": a bigger fan and the plain deck, for eyes that want it. */
   bigCards: boolean;
@@ -316,10 +316,16 @@ export function saveBlocked(list: readonly BlockedPlayer[]): void {
   writeBlocked(store, list);
 }
 
+// Accepted in this session, whatever the store did with it. A browser with DOM
+// storage off keeps no write at all, so "Razumijem" was forgotten at once: the
+// sheet came back at every press of the mic, and nothing was ever recorded.
+let conductThisSession = false;
+
 export function conductAccepted(): boolean {
-  return readConduct(store);
+  return conductThisSession || readConduct(store);
 }
 
 export function acceptConduct(): void {
+  conductThisSession = true;
   writeConduct(store);
 }

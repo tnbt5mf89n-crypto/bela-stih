@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Seat } from '@belot/engine';
 import type { Lang } from '@belot/i18n';
 import { GIFTS, giftBlock, giftCost, type GiftId, type PlayerProfile } from '@belot/progression';
@@ -10,7 +11,7 @@ import { Button } from '../ui/Button';
 import { Close, Coin, Flag, Lock } from '../ui/icons';
 import { REPORT_EMAIL } from '../report';
 import { PressScale } from '../ui/PressScale';
-import { GIFT_PICKER, giftPickerLayout } from './metrics';
+import { GIFT_PICKER, giftPickerLayout, playerViewMax } from './metrics';
 
 /**
  * The gift picker: opened from a puck, it offers the whole catalogue with
@@ -19,7 +20,8 @@ import { GIFT_PICKER, giftPickerLayout } from './metrics';
  * (pick, then "Pošalji · N"), because every gift is coins spent.
  *
  * An overlay over the table, like the leave question: no row of the table
- * moves when it opens. Drawn to the box by `giftPickerLayout`.
+ * moves when it opens. Drawn to the box by `giftPickerLayout`, and the
+ * player view by `playerViewMax`.
  */
 export function GiftPicker({
   lang,
@@ -70,6 +72,10 @@ export function GiftPicker({
   const ui = lang.s.ui;
   const { width, height } = useWindowDimensions();
   const L = giftPickerLayout(width, height, land, GIFTS.length);
+  // The player view gets what the safe box leaves under the header, and
+  // scrolls beyond it: sideways its four actions are taller than a phone.
+  const insets = useSafeAreaInsets();
+  const playerMax = playerViewMax(height - insets.top - insets.bottom);
   const [everyone, setEveryone] = useState(target === 'table');
   const [chosen, setChosen] = useState<GiftId | null>(null);
   const to: Seat | 'table' = everyone || target === 'table' ? 'table' : target;
@@ -229,7 +235,7 @@ export function GiftPicker({
           </PressScale>
         </View>
         {moderating && moderate ? (
-          <View style={styles.player}>
+          <ScrollView style={[styles.playerScroll, { maxHeight: playerMax }]} contentContainerStyle={styles.player} persistentScrollbar>
             <Button label={moderate.hidden ? ui.showPlayer : ui.hidePlayer} tone="strong" onPress={moderate.onHide} style={styles.send} />
             <Text style={styles.note}>{ui.hidePlayerNote}</Text>
             {/* For good, and everywhere: quick play keeps them away, nothing of theirs arrives. */}
@@ -251,7 +257,7 @@ export function GiftPicker({
             <Text style={styles.note} selectable>
               {ui.reportFallback(REPORT_EMAIL)}
             </Text>
-          </View>
+          </ScrollView>
         ) : (
           <>
             {!land && chips}
@@ -327,6 +333,7 @@ const styles = StyleSheet.create({
   },
   chipName: { flexShrink: 1, minWidth: 0 },
   reportPill: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  playerScroll: { alignSelf: 'stretch' },
   player: { alignSelf: 'stretch', gap: P.GAP },
   chipOn: { borderColor: theme.accent },
   chipText: { color: ink.mid, ...type.sub },
