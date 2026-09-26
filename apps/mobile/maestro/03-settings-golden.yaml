@@ -17,11 +17,12 @@ name: Settings open, and the hidden diagnostics replay the golden corpus on Herm
       id: "version"
     direction: DOWN
     timeout: 20000
-- repeat:
-    times: 5
-    commands:
-      - tapOn:
-          id: "version"
+# Five quick taps (a repeated tap, not five commands: each command fetches the
+# hierarchy, and five of those overran the six-second window on the phone).
+- tapOn:
+    id: "version"
+    repeat: 5
+    delay: 100
 - scrollUntilVisible:
     element:
       id: "diag-golden"

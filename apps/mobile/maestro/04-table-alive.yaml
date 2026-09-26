@@ -1,5 +1,6 @@
 appId: com.slfresh.belastih
-name: The table is still standing (run after scripts/device-flows.sh has rotated the phone twenty times)
+name: The table is still standing, after the device script has turned the phone twenty times
+# (No slash in this name: Maestro writes a report file named after it.)
 ---
 - extendedWaitUntil:
     visible:
