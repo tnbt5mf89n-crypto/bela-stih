@@ -140,7 +140,7 @@ Nightly it runs the self-play harness over 100,000 deals.
 
 ## What the test suite guarantees
 
-`npm test` — **896 tests, all passing:**
+`npm test` — **976 tests, all passing:**
 
 - **Two value systems, context-derived.** A card stores only `suit + rank`; power and points are
   derived from `{ contractType, trumpSuit }`. The same Jack is 20 in trump and 2 outside it.
@@ -182,6 +182,10 @@ Nightly it runs the self-play harness over 100,000 deals.
   TypeScript checker into `apps/mobile/test/wire-schema.snapshot.json`; a field removed or changed
   while apps that read it are in the wild fails the build. A wire generation number (`proto`) is
   sent at every join, and a server may refuse an app too old to talk to it (code 4301).
+- **The phone plays the same rules.** Settings hides a diagnostics panel (five taps on the version
+  line) that replays the golden corpus on the phone's own JavaScript engine and compares the play
+  hash with the fixture; `bash scripts/device-flows.sh` drives it, and a deal, through Maestro
+  (`apps/mobile/maestro/`), with the release APK on the test phone.
 
 ### Rule constants, externally cross-checked
 

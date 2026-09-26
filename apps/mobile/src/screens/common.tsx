@@ -9,7 +9,7 @@ import { font, theme } from '../theme';
 export { Panel } from '../ui/Panel';
 
 /** The version shown in settings; keep in step with app.json. */
-export const APP_VERSION = '1.5.2';
+export const APP_VERSION = '1.6.0';
 
 /**
  * The frame every secondary screen (shop, settings, profile) shares: a back

@@ -62,7 +62,38 @@ keep it that way.
   (apps/server/src/voice.ts VoiceLedger), never stored or logged. It is the
   fact of a play inside a match (App interactions, already declared as
   processed ephemerally): no Data safety or IARC change; the privacy page says
-  so in one clause.
+  so in one clause. From 1.6.0 a receipt means the clip was heard to the END.
+- Identity without accounts (1.6.0): the app makes itself a random install ID
+  (16 bytes, once, kept on the device) and sends it at every join with the
+  IDs the player has blocked. The server keeps both in memory with the seat
+  and nowhere else - never stored, never logged - and publishes each seat's
+  ID to the others at that table, which is what a block or a report names
+  (`apps/server/src/identity.ts`, `apps/mobile/src/identity.ts`; pinned by
+  identity.test.ts, identity-client.test.ts, identity-smoke.ts). Uses: a
+  public table refuses a seat to anyone who has blocked, or is blocked by,
+  someone there (4302); no clip, emote or gift crosses a block at any table;
+  the operator can refuse an installation at the door (`banned` in
+  config.json, 4303). Data safety: the ID is a "Device or other ID" that
+  leaves the device, processed ephemerally (in memory for the join, like the
+  moves) - under Play's ephemeral-processing rule it is not "collected"; the
+  privacy page names it and what it is for. If it is ever stored (R5's
+  accounts), the form changes. The block list is device-local and its player
+  can empty it in Settings.
+- Strangers' clips (1.6.0): at a public table nobody hears strangers' voice
+  messages until they opt in for that table (`voiceIn`; a 1.5.x app cannot,
+  so it hears none), and the rules of conduct are shown and accepted once
+  before the first voice message ever leaves a device (Play's
+  terms-before-UGC rule). A clip carries the sender's average level (a
+  number, dBFS) so the listener's app can level it; it is relayed and never
+  read. The switches `voice` / `strangerClips` in config.json turn either off
+  in a minute without a deploy.
+- Child safety (1.6.0): belastih.com/#pravila states that any sexual content
+  involving minors, and any grooming or sexualised contact with a minor over
+  the game's channels, is forbidden and reported to the authorities; the
+  report path (prijave@belastih.com) is the in-app feedback mechanism Play's
+  Child Safety Standards policy asks for. **Still to do in Play Console
+  (the player):** the CSAE point of contact and the self-certification in
+  App content → Child safety standards.
 
 ## One-time paperwork (do once, ~30 minutes total)
 
