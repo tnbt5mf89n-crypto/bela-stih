@@ -1,3 +1,4 @@
+import { spring } from '../theme';
 import { Platform, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { playSfx, type Sfx } from '../audio';
@@ -84,7 +85,7 @@ export function PressScale({
           s.value = 1;
           o.value = 1;
         } else {
-          s.value = withSpring(1, { damping: 14, stiffness: 260, mass: 0.7 });
+          s.value = withSpring(1, spring.lift);
           o.value = withTiming(1, { duration: 120 });
         }
         rest.onPressOut?.(e);

@@ -1,4 +1,4 @@
-import { cardWidthForHeight, fanHeight, fitHand } from './geometry';
+import { cardWidthForHeight, fanHeight, fitHand, DEFAULT_REVEAL } from './geometry';
 
 /**
  * Every dimension the table draws, derived from the window it actually has.
@@ -27,6 +27,8 @@ export interface TableMetrics {
   handMinHeight: number;
   /** Widest card the hand may use; landscape trades size for a visible felt. */
   handCardMax: number;
+  /** How far each card of the fan advances past the last, as a fraction of a width (geometry.fitHand). */
+  handReveal: number;
   /** Floor for the table area, so the felt never collapses to nothing. */
   feltMinHeight: number;
   /**
@@ -208,7 +210,21 @@ export const FAN_REST_SHORT = SELF_NESTLE + 8;
  */
 export const SHORT_CHROME = 8 + 30 + 32 + 24 + 46 + 34 + 42 + 8 * 4;
 
-export function computeTableMetrics(usableW: number, usableH: number): TableMetrics {
+/**
+ * "Velike karte" (1.6.0): the hand's cards about 15% wider than the phone's
+ * default, where the width allows it. Module state like the deck style: read
+ * during render by whoever computes the metrics; App sets it from Settings.
+ */
+let bigCards = false;
+export function setBigCards(on: boolean): void {
+  bigCards = on;
+}
+export const BIG_CARDS_FACTOR = 1.15;
+/** With big cards the fan overlaps more: a phone's fan is bound by its width, not by the cap. */
+export const BIG_CARDS_REVEAL = 0.52;
+
+export function computeTableMetrics(usableW: number, usableH: number, opts: { bigCards?: boolean } = {}): TableMetrics {
+  const big = opts.bigCards ?? bigCards;
   const landscape = usableW >= usableH;
   // Portrait is width-bound and landscape is height-bound: scale by whichever
   // axis is actually scarce, or a tall thin phone gets giant cards.
@@ -237,13 +253,15 @@ export function computeTableMetrics(usableW: number, usableH: number): TableMetr
 
   // Landscape has width to burn and no height, so the hand takes a fixed
   // slice of the screen instead of the biggest card that fits across it.
+  const grow = big ? BIG_CARDS_FACTOR : 1;
   const handCardMax = landscape
-    ? clamp(Math.floor(cardWidthForHeight(usableH * 0.34, 8)), 40, 76)
+    ? clamp(Math.floor(cardWidthForHeight(usableH * 0.34, 8) * grow), 40, Math.round(76 * grow))
     : // Portrait: grow with the screen rather than staying at phone size. 76
       // is the handset figure and `scale` is already 1 there, so phones are
       // unchanged; a roomier window simply gets roomier cards.
-      Math.round(76 * scale);
-  const fit = fitHand(handWidth, 8, handCardMax);
+      Math.round(76 * scale * grow);
+  const handReveal = big ? BIG_CARDS_REVEAL : DEFAULT_REVEAL;
+  const fit = fitHand(handWidth, 8, handCardMax, handReveal);
   const handMinHeight = Math.ceil(fanHeight(fit.cardW, 8));
 
   // Portrait's budget: the fixed rows, the fan, and my puck's row (the ring
@@ -271,6 +289,7 @@ export function computeTableMetrics(usableW: number, usableH: number): TableMetr
     handWidth,
     railW,
     handCardMax,
+    handReveal,
     handMinHeight,
     // Portrait: a generous floor where the column can pay for it, less where
     // it cannot. Sideways it must be zero: the felt is the only flexible row,

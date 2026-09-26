@@ -27,7 +27,7 @@ import { preloadSfx, setMasterVolume, setSoundEnabled } from './src/audio';
 import { AudioUnlockChip } from './src/ui/AudioUnlockChip';
 import { runBackGuard } from './src/ui/backGuard';
 import { useWebBack } from './src/ui/webBack';
-import { setAndroidHaptics, setHapticsEnabled } from './src/haptics';
+import { setAndroidHaptics, setHapticsEnabled, setHapticsStrength } from './src/haptics';
 import { useFonts } from 'expo-font';
 
 /** Registered under the names theme.ts's `font` tokens use. */
@@ -43,6 +43,7 @@ const FONTS = {
 LogBox.ignoreLogs(['Reduced motion setting is overwritten']);
 import { setCardLocale, setCosmetics, setDeckStyle } from './src/cosmetics';
 import { ErrorBoundary } from './src/ui/ErrorBoundary';
+import { setBigCards } from './src/table/metrics';
 import { ensureQuests, isoDay } from '@belot/progression';
 import { APP_VERSION } from './src/screens/common';
 import { useMotionPolicy } from './src/anim/useMotionPolicy';
@@ -96,14 +97,17 @@ export default function App() {
   // during ours; sound and haptics are only ever read on a press or a beat,
   // which is never the first render, so those move to an effect.
   setCosmetics(profile);
-  setDeckStyle(settings.deckStyle);
+  // "Velike karte" brings the plain deck with it: big and simple is the point.
+  setDeckStyle(settings.bigCards ? 'simple' : settings.deckStyle);
+  setBigCards(settings.bigCards);
   setCardLocale(lang);
   useEffect(() => {
     setSoundEnabled(settings.sound);
     setHapticsEnabled(settings.haptics);
+    setHapticsStrength(settings.hapticStrength);
     setAndroidHaptics(Platform.OS === 'android');
     setMasterVolume(settings.volume);
-  }, [settings.sound, settings.haptics, settings.volume]);
+  }, [settings.sound, settings.haptics, settings.hapticStrength, settings.volume]);
 
   const updateProfile = useCallback((p: PlayerProfile) => {
     saveProfile(p);

@@ -209,7 +209,7 @@ export function useGame(
     // in; the table bumps them on every reflow as well).
     () => anchors.bump(),
     {
-      timings: timingsFor(motion),
+      timings: timingsFor(motion, settings.tempo),
       onEventEnd: (e, speed) => {
         landingSound(e, HUMAN, motionRef.current === 'reduced');
         fx.end(e, speed);

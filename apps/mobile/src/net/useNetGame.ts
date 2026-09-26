@@ -241,6 +241,8 @@ export function useNetGame(settings: Settings) {
   const voiceHeardRef = useRef<((id: number, by: Seat) => void) | null>(null);
   const [mode, setMode] = useState<PlayMode>('easy');
   const modeRef = useRef<PlayMode>('easy');
+  const tempoRef = useRef(settings.tempo);
+  tempoRef.current = settings.tempo;
   modeRef.current = mode;
   const [hostSeat, setHostSeat] = useState<Seat | null>(null);
   const [series, setSeries] = useState<[number, number]>([0, 0]);
@@ -302,8 +304,8 @@ export function useNetGame(settings: Settings) {
   const motion = useMotionPolicy(settings.motion);
   motionRef.current = motion;
   useEffect(() => {
-    directorRef.current?.setTimings(timingsFor(motion));
-  }, [motion]);
+    directorRef.current?.setTimings(timingsFor(motion, settings.tempo));
+  }, [motion, settings.tempo]);
 
   // The table's gifts. The socket handlers are registered once, in attach(),
   // so they reach the hook through a ref, as they reach the spawner.
@@ -543,7 +545,7 @@ export function useNetGame(settings: Settings) {
                 : 0,
             onThink: (e) => setSpotlight('seat' in e ? e.seat : null),
           },
-          timingsFor(motionRef.current),
+          timingsFor(motionRef.current, tempoRef.current),
         );
         setView(msg.view);
       }

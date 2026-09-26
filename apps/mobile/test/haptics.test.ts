@@ -45,14 +45,15 @@ describe('the haptic patterns', () => {
     }
   });
 
-  it('fall back to the pattern\'s own step when the Android constant is rejected (API < 30)', async () => {
+  it('fall back to the oldest constant when the Android constant is rejected (API < 30), never to a waveform', async () => {
     setHapticsEnabled(true);
     setAndroidHaptics(true);
     vi.mocked(Haptics.performAndroidHapticsAsync).mockImplementationOnce(() => Promise.reject(new Error('unsupported')));
     pattern('dealFailed');
     await Promise.resolve();
     await Promise.resolve();
-    expect(Haptics.notificationAsync).toHaveBeenCalledWith('error');
+    expect(Haptics.performAndroidHapticsAsync).toHaveBeenLastCalledWith('virtual-key');
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
     setAndroidHaptics(false);
   });
 
@@ -72,8 +73,9 @@ describe('the haptic patterns', () => {
     setAndroidHaptics(true);
     pattern('dealMade');
     expect(Haptics.performAndroidHapticsAsync).toHaveBeenCalledWith('confirm');
-    pattern('trumpMine'); // no constant fits a rigid tap: the impact plays
-    expect(Haptics.impactAsync).toHaveBeenCalledWith('rigid');
+    pattern('trumpMine'); // a rigid tap is the keyboard's tap on Android (1.6.0: never a waveform)
+    expect(Haptics.performAndroidHapticsAsync).toHaveBeenCalledWith('keyboard-tap');
+    expect(Haptics.impactAsync).not.toHaveBeenCalled();
     setAndroidHaptics(false);
     vi.mocked(Haptics.performAndroidHapticsAsync).mockClear();
     pattern('dealMade');

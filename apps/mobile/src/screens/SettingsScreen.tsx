@@ -232,6 +232,26 @@ export function SettingsScreen({
         {toggleRow(ui.haptics, settings.haptics, (haptics) =>
           onSettingsChange({ ...settings, haptics }),
         )}
+        {/* How hard: meaningless while haptics are off, shown but asleep. */}
+        <Text style={[styles.rowLabel, !settings.haptics && styles.asleep]}>{ui.hapticStrengthLabel}</Text>
+        <View style={[styles.localeRow, !settings.haptics && styles.asleep]}>
+          {(
+            [
+              { id: 'soft', label: ui.hapticStrengthSoft },
+              { id: 'full', label: ui.hapticStrengthFull },
+            ] as const
+          ).map((o) => (
+            <PressScale
+              key={o.id}
+              disabled={!settings.haptics}
+              onPress={() => onSettingsChange({ ...settings, hapticStrength: o.id })}
+              accessibilityState={{ selected: settings.hapticStrength === o.id }}
+              style={[styles.localeChip, settings.hapticStrength === o.id && styles.localeChipOn]}
+            >
+              <Text style={[styles.localeText, settings.hapticStrength === o.id && styles.localeTextOn]}>{o.label}</Text>
+            </PressScale>
+          ))}
+        </View>
         {toggleRow(ui.voiceSetting, settings.voice, (voice) => onSettingsChange({ ...settings, voice }))}
         {/* How the mic works: meaningless while voice is off, shown but asleep. */}
         <Text style={[styles.rowLabel, !settings.voice && styles.asleep]}>{ui.voiceModeLabel}</Text>
@@ -366,6 +386,28 @@ export function SettingsScreen({
             </PressScale>
           ))}
         </View>
+        {/* The director's pace: how long each beat of a deal takes. */}
+        <Text style={styles.rowLabel}>{ui.tempoLabel}</Text>
+        <View style={styles.localeRow}>
+          {(
+            [
+              { id: 'slow', label: ui.tempoSlow },
+              { id: 'normal', label: ui.tempoNormal },
+              { id: 'fast', label: ui.tempoFast },
+            ] as const
+          ).map((o) => (
+            <PressScale
+              key={o.id}
+              onPress={() => onSettingsChange({ ...settings, tempo: o.id })}
+              accessibilityState={{ selected: settings.tempo === o.id }}
+              style={[styles.localeChip, settings.tempo === o.id && styles.localeChipOn]}
+            >
+              <Text style={[styles.localeText, settings.tempo === o.id && styles.localeTextOn]}>{o.label}</Text>
+            </PressScale>
+          ))}
+        </View>
+        {toggleRow(ui.bigCards, settings.bigCards, (bigCards) => onSettingsChange({ ...settings, bigCards }))}
+        <Text style={styles.hint}>{ui.bigCardsHint}</Text>
       </Panel>
 
       {section(ui.setData)}

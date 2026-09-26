@@ -1,7 +1,9 @@
 import { isPlayMode, type PlayMode } from './playMode';
 import { Platform } from 'react-native';
 import { emptyProfile, ensureQuests, isoDay, migrateProfile, type PlayerProfile } from '@belot/progression'
-import { ensureInstallId, hexOf, readBlocked, readConduct, writeBlocked, writeConduct, type BlockedPlayer } from './identity';;
+import { ensureInstallId, hexOf, readBlocked, readConduct, writeBlocked, writeConduct, type BlockedPlayer } from './identity';
+import type { Tempo } from './anim/director';
+import type { HapticStrength } from './haptics';;
 import { localeFor } from './locale';
 import type { MatchRecord } from './net/history';
 
@@ -98,6 +100,12 @@ export interface Settings {
    * back), or tapped to start and tapped again to send.
    */
   voiceMode: VoiceMode;
+  /** The director's pace (anim/director.ts): the beats stretch or tighten together. */
+  tempo: Tempo;
+  /** "Jačina vibracije": every haptic one notch lighter, or as designed. */
+  hapticStrength: HapticStrength;
+  /** "Velike karte": a bigger fan and the plain deck, for eyes that want it. */
+  bigCards: boolean;
 }
 
 export type VoiceMode = 'hold' | 'tap';
@@ -116,6 +124,9 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.7,
   voice: true,
   voiceMode: 'hold',
+  tempo: 'normal',
+  hapticStrength: 'full',
+  bigCards: false,
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -196,6 +207,9 @@ export function loadSettings(): Settings {
   }
   if (changed) write(KEY.settings, s);
   if (s.voiceMode !== 'hold' && s.voiceMode !== 'tap') s = { ...s, voiceMode: 'hold' };
+  if (s.tempo !== 'slow' && s.tempo !== 'normal' && s.tempo !== 'fast') s = { ...s, tempo: 'normal' };
+  if (s.hapticStrength !== 'soft' && s.hapticStrength !== 'full') s = { ...s, hapticStrength: 'full' };
+  if (typeof s.bigCards !== 'boolean') s = { ...s, bigCards: false };
   // A volume saved by a build with other steps snaps to the nearest chip, or
   // Settings would light none.
   const volume = (VOLUME_OPTIONS as readonly number[]).reduce((best, v) =>

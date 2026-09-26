@@ -107,7 +107,7 @@ import { Button } from './ui/Button';
 import { Check, Close, Coin, Crown, Eye, Pause, Star } from './ui/icons';
 import { EmoteFace } from './emoteArt';
 import { PressScale } from './ui/PressScale';
-import { font, ink, num, radius, space, stroke, surface, team, theme, type } from './theme';
+import { font, ink, num, radius, space, stroke, surface, team, theme, type, spring } from './theme';
 import { isPartner, seatTone } from './table/teamColour';
 
 /**
@@ -344,6 +344,7 @@ export function TableScreen(props: TableScreenProps) {
   useEffect(() => {
     anchors.setMeta(metaId.handWidth, m.handWidth);
     anchors.setMeta(metaId.handCardMax, m.handCardMax);
+    anchors.setMeta(metaId.handReveal, m.handReveal);
   }, [anchors, m.handWidth, m.handCardMax]);
 
   // The trick cross is sized against the felt it is drawn in, not the window:
@@ -1467,6 +1468,7 @@ export function TableScreen(props: TableScreenProps) {
           freePlay={cardsFree}
           width={m.handWidth}
           maxCardW={m.handCardMax}
+          reveal={m.handReveal}
           arranging={arranging}
           onSwap={hand.swap}
           // On my turn the cards take the touch, so the hold has to be theirs
@@ -2292,6 +2294,7 @@ function Hand({
   freePlay = false,
   width,
   maxCardW,
+  reveal,
   arranging = false,
   marking = false,
   marked = [],
@@ -2325,6 +2328,8 @@ function Hand({
   width: number;
   /** Height budget, expressed as a card width; landscape sets it low. */
   maxCardW?: number;
+  /** The fan's overlap (metrics.handReveal); "Velike karte" tightens it. */
+  reveal?: number;
   /** Arrange mode: taps swap cards and can never play one. */
   arranging?: boolean;
   onSwap?: (idA: string, idB: string) => void;
@@ -2435,7 +2440,7 @@ function Hand({
     [anchors],
   );
 
-  const fit = fitHand(width, cards.length, maxCardW);
+  const fit = fitHand(width, cards.length, maxCardW, reveal);
   const mid = (cards.length - 1) / 2;
   const lift = 14 * fit.scale;
   // The arc pushes the outer cards DOWN, and `alignItems: flex-end` had already
@@ -2662,7 +2667,7 @@ const FanCard = memo(
       liftedTo.current = lift;
       liftV.value = reduced
         ? withTiming(lift, { duration: 120 })
-        : withDelay(rippleDelay, withSpring(lift, { damping: 16, stiffness: 190, mass: 0.6 }));
+        : withDelay(rippleDelay, withSpring(lift, spring.lift));
     }, [liftV, lift, rippleDelay, reduced]);
     // The card's arc, tilt and lift on one view, as 1.2.5 had it. Splitting the
     // tilt out into a plain view of its own (so that a lost animated value

@@ -158,4 +158,5 @@ export const metaId = {
   /** The width the hand lays its fan out in, and the card-width cap it uses. */
   handWidth: 'handWidth',
   handCardMax: 'handCardMax',
+  handReveal: 'handReveal',
 } as const;

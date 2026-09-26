@@ -137,8 +137,17 @@ export const REDUCED_TIMINGS: Timings = Object.fromEntries(
   ]),
 ) as Timings;
 
-export function timingsFor(policy: MotionPolicy): Timings {
-  return policy === 'reduced' ? REDUCED_TIMINGS : DEFAULT_TIMINGS;
+/** Settings' "Tempo igre" (1.6.0): the beats stretch or tighten together; the reveal (information) never. */
+export type Tempo = 'slow' | 'normal' | 'fast';
+export const TEMPO_FACTOR: Readonly<Record<Tempo, number>> = { slow: 1.3, normal: 1, fast: 0.75 };
+
+export function timingsFor(policy: MotionPolicy, tempo: Tempo = 'normal'): Timings {
+  const base = policy === 'reduced' ? REDUCED_TIMINGS : DEFAULT_TIMINGS;
+  const f = TEMPO_FACTOR[tempo] ?? 1;
+  if (f === 1) return base;
+  return Object.fromEntries(
+    Object.entries(base).map(([k, t]) => [k, k === 'declarationsRevealed' ? t : { dur: Math.round(t.dur * f), gap: Math.round(t.gap * f) }]),
+  ) as Timings;
 }
 
 interface Current {

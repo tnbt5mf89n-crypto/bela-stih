@@ -205,6 +205,7 @@ export function makeFxSpawner(opts: FxSpawnerOptions) {
           anchors.meta(metaId.handWidth) ?? hand.w,
           total,
           anchors.meta(metaId.handCardMax) ?? Math.min(MAX_CARD_W, cardWidthForHeight(hand.h, total)),
+          anchors.meta(metaId.handReveal) ?? undefined,
         )
       : null;
     const mine = (k: number): XY => {

@@ -143,3 +143,31 @@ export const radius = { xs: 4, sm: 8, md: 14, lg: 20, pill: 999, card: 8, panel:
 
 /** UI transitions — a press, a chip, a panel. NOT the director's beats (anim/director.ts). */
 export const motion = { fast: 120, base: 220, slow: 360 } as const;
+
+/**
+ * The springs (1.6.0), mass 1: the whole app's motion vocabulary, so nothing
+ * springs in a voice of its own. `lift` is the only one that overshoots (~10%):
+ * a card picked up, a badge landing. feel.test.ts requires every withSpring to
+ * use one of these.
+ */
+export const spring = {
+  /** A card in flight, a deal. */
+  flight: { stiffness: 380, damping: 31.2 },
+  /** Lift and select: the one with overshoot. */
+  lift: { stiffness: 800, damping: 33.9 },
+  /** Sheets and panels sliding in. */
+  sheet: { stiffness: 700, damping: 47.6 },
+  /** Fades: as good as immediate, never bouncing. */
+  opacity: { stiffness: 1600, damping: 80 },
+} as const;
+
+/**
+ * Depth (1.6.0): React Native's boxShadow (0.76+, the new architecture), which
+ * the old "no shadows" reason no longer stands against. One warm key light from
+ * above centre: the shadow falls straight down, soft, never coloured.
+ */
+export const depth = {
+  panel: '0 6px 18px rgba(0,0,0,0.32)',
+  sheet: '0 10px 28px rgba(0,0,0,0.45)',
+  chip: '0 2px 6px rgba(0,0,0,0.28)',
+} as const;

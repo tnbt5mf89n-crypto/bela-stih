@@ -333,6 +333,18 @@ export interface UiStrings {
   motionSystem: string;
   motionFull: string;
   motionReduced: string;
+  /** The director's pace (1.6.0). */
+  tempoLabel: string;
+  tempoSlow: string;
+  tempoNormal: string;
+  tempoFast: string;
+  /** Haptics one notch lighter, or as designed (1.6.0). */
+  hapticStrengthLabel: string;
+  hapticStrengthSoft: string;
+  hapticStrengthFull: string;
+  /** A bigger fan and the plain deck (1.6.0). */
+  bigCards: string;
+  bigCardsHint: string;
   volumeLabel: string;
   volumeQuiet: string;
   volumeMedium: string;
@@ -1114,6 +1126,15 @@ const hr: Strings = {
     motionSystem: 'Kao sustav',
     motionFull: 'Pune',
     motionReduced: 'Smanjene',
+    tempoLabel: 'Tempo igre',
+    tempoSlow: 'Polako',
+    tempoNormal: 'Normalno',
+    tempoFast: 'Brzo',
+    hapticStrengthLabel: 'Jačina vibracije',
+    hapticStrengthSoft: 'Blaža',
+    hapticStrengthFull: 'Puna',
+    bigCards: 'Velike karte',
+    bigCardsHint: 'Veća lepeza i jednostavne karte, za oči koje to žele.',
     volumeLabel: 'Glasnoća',
     volumeQuiet: 'Tiho',
     volumeMedium: 'Srednje',
@@ -1688,6 +1709,15 @@ const srCyrl: Strings = {
     motionSystem: 'Као систем',
     motionFull: 'Пуне',
     motionReduced: 'Смањене',
+    tempoLabel: 'Темпо игре',
+    tempoSlow: 'Полако',
+    tempoNormal: 'Нормално',
+    tempoFast: 'Брзо',
+    hapticStrengthLabel: 'Јачина вибрације',
+    hapticStrengthSoft: 'Блажа',
+    hapticStrengthFull: 'Пуна',
+    bigCards: 'Велике карте',
+    bigCardsHint: 'Већа лепеза и једноставне карте, за очи које то желе.',
     volumeLabel: 'Јачина звука',
     volumeQuiet: 'Тихо',
     volumeMedium: 'Средње',
@@ -2259,6 +2289,15 @@ const en: Strings = {
     motionSystem: 'Follow system',
     motionFull: 'Full',
     motionReduced: 'Reduced',
+    tempoLabel: 'Pace',
+    tempoSlow: 'Slow',
+    tempoNormal: 'Normal',
+    tempoFast: 'Fast',
+    hapticStrengthLabel: 'Vibration strength',
+    hapticStrengthSoft: 'Softer',
+    hapticStrengthFull: 'Full',
+    bigCards: 'Big cards',
+    bigCardsHint: 'A bigger fan and the plain deck, for eyes that want it.',
     volumeLabel: 'Volume',
     volumeQuiet: 'Quiet',
     volumeMedium: 'Medium',

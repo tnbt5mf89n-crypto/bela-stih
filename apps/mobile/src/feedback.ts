@@ -65,7 +65,7 @@ export function landingSound(e: TableEvent, mySeat: Seat, reduced = false): void
     case 'cardPlayed':
       if (e.seat !== mySeat) {
         playSfx('play', { rate: 0.95 });
-        pattern('land');
+        // No haptic for another seat's card (1.6.0): the sound says it landed.
       }
       break;
     case 'bidCalled':

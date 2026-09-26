@@ -16,7 +16,7 @@ import { EmoteFace } from '../emoteArt';
 import { GiftArt } from '../giftArt';
 import { garb } from '../deck/palette';
 import { counters } from '../dev/counters';
-import { font, radius, signal, stroke, surface, theme } from '../theme';
+import { font, radius, signal, spring, stroke, surface, theme } from '../theme';
 import type { FxBus, FxWithId, XY } from './FxBus';
 import {
   BACK_SCALE,
@@ -635,7 +635,7 @@ function Stamp({
   const p = useSharedValue(0);
   const drop = useSharedValue(fade ? 1 : 1.6);
   useEffect(() => {
-    if (!fade) drop.value = withSpring(1, { damping: 12, stiffness: 240, mass: 0.5 });
+    if (!fade) drop.value = withSpring(1, spring.lift);
     p.value = withTiming(1, {
       duration: (fade ? FADE_STAMP_MS : STAMP_MS) * speed,
       easing: fade ? Easing.linear : Easing.out(Easing.cubic),

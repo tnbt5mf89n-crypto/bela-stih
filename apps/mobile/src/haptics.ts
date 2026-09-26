@@ -19,6 +19,9 @@ let enabled = true;
 // app says which platform it is on; this module stays free of react-native
 // so the tests can load it in node.
 let android = false;
+/** Settings' "Jačina vibracije": `soft` plays every step one notch lighter. */
+export type HapticStrength = 'soft' | 'full';
+let strength: HapticStrength = 'full';
 
 export function setHapticsEnabled(on: boolean): void {
   enabled = on;
@@ -26,6 +29,10 @@ export function setHapticsEnabled(on: boolean): void {
 
 export function setAndroidHaptics(on: boolean): void {
   android = on;
+}
+
+export function setHapticsStrength(s: HapticStrength): void {
+  strength = s;
 }
 
 /**
@@ -68,10 +75,10 @@ export const PATTERNS = {
   purchase: [notify(0, N.Success, 'confirm')],
   claim: [impact(0, I.Light), impact(120, I.Light)],
   error: [notify(0, N.Error, 'reject')],
-  // the cards
+  // the cards: mine only. An opponent's card used to buzz as it landed, some
+  // 24 times a deal - more touch than information (1.6.0).
   arm: [impact(0, I.Soft)],
   play: [impact(0, I.Light)],
-  land: [impact(0, I.Soft)],
   // the cues
   turn: [select(0), impact(90, I.Light)],
   call: [impact(0, I.Medium), impact(90, I.Medium)],
@@ -103,7 +110,50 @@ export const PATTERNS = {
 
 export type Pattern = keyof typeof PATTERNS;
 
-/** The pattern's own step, on every platform. */
+/** One notch lighter, for the soft setting. */
+const SOFTER: Record<Haptics.ImpactFeedbackStyle, Haptics.ImpactFeedbackStyle> = {
+  [I.Heavy]: I.Medium,
+  [I.Rigid]: I.Medium,
+  [I.Medium]: I.Light,
+  [I.Light]: I.Soft,
+  [I.Soft]: I.Soft,
+};
+
+function soften(step: Step): Step {
+  if (strength === 'full' || step.kind !== 'impact') return step;
+  return { ...step, style: SOFTER[step.style] ?? step.style, android: undefined };
+}
+
+/**
+ * Android plays every step through the system's haptic feedback constants
+ * (performHapticFeedback) and never through expo-haptics' impact and
+ * notification calls: those build a VibrationEffect.createWaveform, which on
+ * a motor without primitives (this app's test phone among them) is a flat buzz
+ * that ignores the style. The constants are what the OS itself uses for a
+ * key, a click, a confirmation - tuned per phone by its maker.
+ */
+const ANDROID_IMPACT: Record<Haptics.ImpactFeedbackStyle, AndroidName | 'virtual-key' | 'keyboard-tap' | 'context-click' | 'text-handle-move'> = {
+  [I.Soft]: 'text-handle-move',
+  [I.Light]: 'virtual-key',
+  [I.Medium]: 'context-click',
+  [I.Heavy]: 'long-press',
+  [I.Rigid]: 'keyboard-tap',
+};
+const ANDROID_NOTIFY: Record<Haptics.NotificationFeedbackType, AndroidName> = {
+  [N.Success]: 'confirm',
+  [N.Warning]: 'clock-tick',
+  [N.Error]: 'reject',
+};
+
+/** The Android constant for a step: its own, or the one its kind maps to. */
+export function androidConstantFor(step: Step): string {
+  if (step.android) return step.android;
+  if (step.kind === 'impact') return ANDROID_IMPACT[step.style];
+  if (step.kind === 'notify') return ANDROID_NOTIFY[step.type];
+  return 'segment-tick';
+}
+
+/** The pattern's own step - iOS and the web. */
 function fireOwn(step: Step): void {
   const p =
     step.kind === 'impact'
@@ -114,13 +164,18 @@ function fireOwn(step: Step): void {
   void p.catch(() => {});
 }
 
-function fire(step: Step): void {
+function fire(raw: Step): void {
   // Read again here, not only when the pattern started: a later step of a
   // pattern must not land after the setting was switched off.
   if (!enabled) return;
-  if (android && step.android) {
-    // A constant the device's API level lacks rejects: then the impact.
-    Haptics.performAndroidHapticsAsync(step.android as Haptics.AndroidHaptics).catch(() => fireOwn(step));
+  const step = soften(raw);
+  if (android) {
+    // A constant the device's API level lacks rejects: then the one every
+    // Android since API 5 has. Never the waveform.
+    const c = androidConstantFor(step) as Haptics.AndroidHaptics;
+    Haptics.performAndroidHapticsAsync(c).catch(() => {
+      if (c !== 'virtual-key') Haptics.performAndroidHapticsAsync('virtual-key' as Haptics.AndroidHaptics).catch(() => {});
+    });
     return;
   }
   fireOwn(step);

@@ -73,12 +73,15 @@ export interface HandFit {
  * `maxCardW` lets a short screen (landscape) hold the fan down to a height it
  * can actually spare; the width rules are unchanged.
  */
-export function fitHand(available: number, count: number, maxCardW = MAX_CARD_W): HandFit {
+/** The fan's default overlap: each card advances 62% of a width past the last; "Velike karte" uses less. */
+export const DEFAULT_REVEAL = 0.62;
+
+export function fitHand(available: number, count: number, maxCardW = MAX_CARD_W, reveal = DEFAULT_REVEAL): HandFit {
   // Turned sideways there is width to spare and no height at all, so the cap
   // that matters is the caller's, not the fan's own.
   const cap = clamp(maxCardW, MIN_CARD_W, MAX_CARD_W);
   // The rotated outer cards need room too, or they hang off the screen edges.
-  const spread = 1 + (count - 1) * 0.62 + tiltAllowance(count);
+  const spread = 1 + (count - 1) * reveal + tiltAllowance(count);
   const cardW =
     count <= 1 ? Math.min(cap, available) : clamp(available / spread, MIN_CARD_W, cap);
   const advance =

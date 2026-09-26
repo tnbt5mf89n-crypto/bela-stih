@@ -5,7 +5,7 @@ import type { Seat } from '@belot/engine';
 import type { Lang } from '@belot/i18n';
 import { GIFTS, giftBlock, giftCost, type GiftId, type PlayerProfile } from '@belot/progression';
 import { GiftArt } from '../giftArt';
-import { font, ink, num, radius, stroke, surface, theme, type } from '../theme';
+import { depth, font, ink, num, radius, stroke, surface, theme, type } from '../theme';
 import { Button } from '../ui/Button';
 import { Close, Coin, Flag, Lock } from '../ui/icons';
 import { REPORT_EMAIL } from '../report';
@@ -298,6 +298,7 @@ const styles = StyleSheet.create({
     padding: P.PAD,
     gap: P.GAP,
     alignItems: 'center',
+    boxShadow: depth.sheet,
   },
   header: { alignSelf: 'stretch', height: P.HEADER, flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { flexShrink: 1, color: ink.hi, ...type.h3 },

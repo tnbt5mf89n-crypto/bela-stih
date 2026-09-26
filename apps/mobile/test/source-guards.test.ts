@@ -67,8 +67,8 @@ describe('anchors measure on demand', () => {
   it('the motion policy has one source: the table reads a prop, the games read the hook', () => {
     expect(src('TableScreen.tsx')).not.toMatch(/useReduceMotion/);
     expect(src('anim/useMotionPolicy.ts')).toMatch(/useReduceMotion\(\)/);
-    expect(src('useGame.ts')).toMatch(/timingsFor\(motion\)/);
-    expect(src('net/useNetGame.ts')).toMatch(/timingsFor\(motionRef\.current\)/);
+    expect(src('useGame.ts')).toMatch(/timingsFor\(motion, settings\.tempo\)/);
+    expect(src('net/useNetGame.ts')).toMatch(/timingsFor\(motionRef\.current, tempoRef\.current\)/);
   });
 
   it('every button and chip presses through PressScale, which clicks for it', () => {
@@ -1057,9 +1057,10 @@ describe('a screen reader can name every control', () => {
     expect(settings).toMatch(/<Switch\s+accessibilityLabel=\{label\}/);
     // Every chip says whether it is the chosen one, by the same test that lights it.
     const chips = [...settings.matchAll(/accessibilityState=\{\{ selected: ([^}]+) \}\}\s+style=\{\[styles\.localeChip, ([^\]]+?) && styles\.localeChipOn\]\}/g)];
-    expect(chips.length).toBe(8);
+    // Eight groups until 1.6.0; the tempo and the vibration strength make ten.
+    expect(chips.length).toBe(10);
     for (const m of chips) expect(m[1]!.trim()).toBe(m[2]!.trim());
-    expect((settings.match(/styles\.localeChip, /g) ?? []).length).toBe(8);
+    expect((settings.match(/styles\.localeChip, /g) ?? []).length).toBe(10);
     expect(settings).toMatch(/accessibilityRole="link"\s+accessibilityLabel=\{ui\.privacyPolicy\}/);
   });
 });

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
-import { ink, radius, space, stroke, surface, type } from '../theme';
+import { depth, ink, radius, space, stroke, surface, type } from '../theme';
 import { Button } from './Button';
 import { useMotionHere } from '../anim/MotionHere';
 
@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     borderColor: stroke.edge,
     padding: space.xl,
     gap: space.xl,
+    boxShadow: depth.sheet,
   },
   words: { gap: space.sm },
   title: { color: ink.hi, ...type.h3, textAlign: 'center' },
